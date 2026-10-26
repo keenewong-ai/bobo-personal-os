@@ -393,18 +393,53 @@ select {
 .pwa-hint ol { margin: 8px 0 0; padding-left: 1.2em; color: var(--gray-600); font-size: 13px; line-height: 1.55; }
 .pwa-hint strong { font-weight: 900; }
 
+
+
+
+.auth-error {
+  margin: 16px; padding: 16px; border-radius: var(--radius);
+  background: #FFE5E5; border: 2px solid #FFB0B0; color: #8A1F1F;
+}
+[data-theme="dark"] .auth-error { background: #3A1515; border-color: #6B2A2A; color: #FFB0B0; }
+.auth-error h2 { font-size: 16px; font-weight: 900; margin-bottom: 8px; color: inherit; }
+.auth-error ol { margin: 8px 0 0; padding-left: 1.2em; font-size: 13px; line-height: 1.55; }
+.task-goto {
+  margin-top: 8px; min-height: 36px; font-size: 12px; padding: 0 12px;
+  border-radius: 10px; background: var(--blue-soft); color: #0A7EA4;
+  border: 2px solid #A6E0F7; font-weight: 800;
+}
+[data-theme="dark"] .task-goto { border-color: #1A5A72; }
+.asset-row {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+  border: 2px solid var(--gray-100); border-radius: 10px; margin-bottom: 6px;
+  background: var(--gray-50); font-size: 13px; font-weight: 700;
+}
+.asset-row a { color: var(--blue); word-break: break-all; flex: 1; }
+.asset-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; }
+.boot-screen {
+  position: fixed; inset: 0; z-index: 300; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+}
+.boot-screen .spin {
+  width: 36px; height: 36px; border: 4px solid var(--gray-100); border-top-color: var(--green);
+  border-radius: 50%; animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.goals-habit { margin-top: 8px; }
+.track-habit { background: var(--blue-soft); color: #0A7EA4; }
 </style>
 <script>
 (function(){
   try {
-    var raw = localStorage.getItem('bobo-pos-v1');
-    if (raw) {
-      var s = JSON.parse(raw);
-      if (s && s.theme === 'dark') {
-        document.documentElement.setAttribute('data-theme','dark');
-        var m = document.getElementById('themeColorMeta') || document.querySelector('meta[name="theme-color"]');
-        if (m) m.setAttribute('content','#121212');
-      }
+    var t = localStorage.getItem('bobo-pos-theme');
+    if (!t) {
+      var raw = localStorage.getItem('bobo-pos-v1');
+      if (raw) { var s = JSON.parse(raw); if (s && s.theme === 'dark') t = 'dark'; }
+    }
+    if (t === 'dark') {
+      document.documentElement.setAttribute('data-theme','dark');
+      var m = document.getElementById('themeColorMeta');
+      if (m) m.setAttribute('content','#121212');
     }
   } catch (e) {}
 })();
@@ -412,6 +447,12 @@ select {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+
+<div class="boot-screen" id="bootScreen">
+  <div class="spin"></div>
+  <p style="font-weight:800;color:var(--gray-600)">載入 Personal OS…</p>
+</div>
+
 <header class="app-header">
   <div class="brand">
     <div class="brand-logo">🦉</div>
@@ -431,6 +472,8 @@ select {
 </header>
 
 <main>
+  <div id="authError" class="auth-error" hidden></div>
+
   <section id="view-today" class="view active">
     <div class="hero-stats">
       <div class="stat">
@@ -458,6 +501,8 @@ select {
     <div id="goalsMain"></div>
     <div class="section-title"><span>支線</span><span>Side</span></div>
     <div id="goalsSide"></div>
+    <div class="section-title goals-habit"><span>習慣</span><span>Habit</span></div>
+    <div id="goalsHabit"></div>
     <button class="btn btn-secondary btn-block" id="btnAddGoal" type="button">＋ 加目標</button>
   </section>
 
@@ -475,7 +520,7 @@ select {
         <div>
           <h2 style="font-size:18px;font-weight:900;margin-bottom:4px">Claude Academy</h2>
           <p style="font-size:13px;color:var(--gray-600);font-weight:700" id="courseDoneLabel">0 / 67 課</p>
-          <p class="hint">撳一課 → 標記完成 / 取消</p>
+          <p class="hint">目標＋67 steps · 撳一課標記完成</p>
         </div>
       </div>
     </div>
@@ -484,9 +529,8 @@ select {
   </section>
 
   <section id="view-milestones" class="view">
-    <div class="section-title"><span>里程碑牆</span></div>
+    <div class="section-title"><span>里程碑牆</span><span>Academy checkpoints</span></div>
     <div id="milestoneList"></div>
-    <button class="btn btn-secondary btn-block" id="btnAddMilestone" type="button">＋ 加里程碑</button>
   </section>
 
   <section id="view-more" class="view">
@@ -505,11 +549,10 @@ select {
       </button>
       <button class="more-link" type="button" data-open="settings">
         <div class="ico">⚙️</div>
-        <div><strong>設定</strong><span>暗黑模式 · 雲端同步 · 加到主畫面</span></div>
+        <div><strong>設定</strong><span>暗黑模式 · 雲端帳號 · 加到主畫面</span></div>
       </button>
     </div>
   </section>
-
 
   <section id="view-terms" class="view">
     <button class="btn btn-ghost" type="button" data-back="more">← 返更多</button>
@@ -595,7 +638,6 @@ select {
         </div>
         <button class="switch on" id="soundSwitch" type="button" role="switch" aria-checked="true" aria-label="按鈕聲效"><i></i></button>
       </div>
-      <p class="hint" style="margin-bottom:12px">本機會快取一份；進度亦會同步去雲端 database（Supabase）。</p>
       <div class="card soft-green pwa-hint" id="pwaInstallHint" style="margin:0 0 12px;padding:12px">
         <strong>📱 加到主畫面</strong>
         <p class="hint" style="margin-top:4px;margin-bottom:0">裝成 App 之後離線都開得，進度照樣同步。</p>
@@ -605,27 +647,16 @@ select {
           <li>揀「加到主畫面」或「安裝應用程式」</li>
         </ol>
       </div>
-      <button class="btn btn-secondary btn-block" id="btnExport" type="button" style="margin-bottom:8px">匯出 JSON</button>
-      <button class="btn btn-secondary btn-block" id="btnReseed" type="button" style="margin-bottom:8px">重新載入示範資料</button>
-      <button class="btn btn-danger btn-block" id="btnWipe" type="button">清空所有資料</button>
     </div>
     <div class="card sync-card" style="margin-top:12px">
-      <h2 style="font-size:17px;font-weight:900;margin-bottom:8px">雲端同步</h2>
+      <h2 style="font-size:17px;font-weight:900;margin-bottom:8px">雲端帳號</h2>
       <div style="margin-bottom:10px">
-        <span class="sync-status offline" id="syncStatusBadge"><span class="sync-dot"></span><span id="syncStatusText">離線</span></span>
+        <span class="sync-status offline" id="syncStatusBadge"><span class="sync-dot"></span><span id="syncStatusText">未連線</span></span>
       </div>
-      <p class="hint">同步 ID（換機／另一個瀏覽器可貼上同一個 ID）</p>
+      <p class="hint">User ID（匿名登入，本機 session 會記住）</p>
       <code id="syncIdDisplay">—</code>
-      <div class="field-row" style="margin-bottom:10px">
-        <button class="btn btn-secondary btn-sm" id="btnCopySyncId" type="button">複製 ID</button>
-        <button class="btn btn-primary btn-sm" id="btnSyncNow" type="button">立即同步</button>
-      </div>
-      <div class="field">
-        <label>貼上另一個同步 ID</label>
-        <input id="syncIdInput" type="text" placeholder="例如 xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" />
-      </div>
-      <button class="btn btn-secondary btn-block btn-sm" id="btnApplySyncId" type="button">改用呢個 ID 並同步</button>
-      <p class="hint" style="margin-top:10px">提示：記低你嘅同步 ID，就可以喺第部裝置讀返進度。</p>
+      <button class="btn btn-primary btn-block btn-sm" id="btnSyncNow" type="button">重新載入雲端資料</button>
+      <p class="hint" style="margin-top:10px">進度存喺 Supabase 各張表（tasks／goals／steps…），唔再係一個 JSON blob。</p>
     </div>
   </section>
 </main>
@@ -654,1544 +685,1231 @@ select {
 <div class="toast" id="toast"></div>
 <div class="celeb" id="celeb"><div class="celeb-burst">🎉</div></div>
 
+
 <script>
+/* BoBo Personal OS — normalized Supabase backend client */
 (function () {
   'use strict';
 
-  const PREFIX = 'bobo-pos-';
-  const KEY = PREFIX + 'v1';
-  const SYNC_ID_KEY = PREFIX + 'sync-id';
-  const LOCAL_UPDATED_KEY = PREFIX + 'updated-at';
   const SUPABASE_URL = 'https://avfpoaipqkqxzuaqjutv.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2ZnBvYWlwcWtxeHp1YXFqdXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwNDMzNDIsImV4cCI6MjEwNzYxOTM0Mn0.zPmiuQPPA61QLdbJzkAAnUIkCEtKlFhdlEPiomVuJDY';
   const TZ = 'Asia/Hong_Kong';
   const MAX_TODAY = 3;
-  const LESSON_COUNT = 67;
+  const OLD_KEY = 'bobo-pos-v1';
+  const MIGRATED_KEY = 'bobo-pos-migrated-v2';
+  const THEME_KEY = 'bobo-pos-theme';
+  const MUTE_KEY = 'bobo-pos-muted';
+  const CIRC = 2 * Math.PI * 36;
 
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+  });
 
-  const AI_TERMS = [
-    { id: 'llm', en: 'LLM', zh: '大型語言模型', tag: '基礎', def: '用海量文字訓練出嚟嘅模型，可以生成、理解同改寫自然語言。Freelance 多數用 API 接住佢做產品功能。' },
-    { id: 'tokens', en: 'Tokens', zh: '詞元', tag: 'API', def: '模型計費同長度嘅單位，唔一定等於一個英文字。設計 prompt 同估成本時一定要睇 token。' },
-    { id: 'prompt', en: 'Prompt', zh: '提示詞', tag: 'Prompt', def: '你畀模型嘅指示同上下文。寫得好可以直接提升輸出質素，係 AI 整合最平嘅槓桿。' },
-    { id: 'system-prompt', en: 'System Prompt', zh: '系統提示', tag: 'Prompt', def: '設定角色、規則同語氣嘅隱藏指示，通常放喺對話最頂。適合固定產品行為同安全邊界。' },
-    { id: 'few-shot', en: 'Few-shot', zh: '少樣本示範', tag: 'Prompt', def: '喺 prompt 入面畀幾個輸入→輸出例子，引導模型跟格式。比淨講規則更穩陣。' },
-    { id: 'zero-shot', en: 'Zero-shot', zh: '零樣本', tag: 'Prompt', def: '唔畀例子，淨靠指示就完成任務。適合簡單、格式寬鬆嘅場景，複雜格式就考慮 few-shot。' },
-    { id: 'cot', en: 'Chain-of-Thought', zh: '思維鏈', tag: '推理', def: '叫模型一步步諗再答，常可提升複雜推理。產品上要小心暴露內部推理同延遲。' },
-    { id: 'temperature', en: 'Temperature', zh: '溫度', tag: 'API', def: '控制輸出隨機程度：低就穩同保守，高就有創意但更易跑偏。客服同資料抽取通常用低溫。' },
-    { id: 'top-p', en: 'Top-p', zh: '核採樣', tag: 'API', def: '只喺累積概率達 p 嘅詞入面抽樣。同 temperature 一齊調，但產品上多數調一個就夠。' },
-    { id: 'streaming', en: 'Streaming', zh: '串流輸出', tag: 'API', def: '模型邊生成邊把字送返前端，感覺更快。聊天 UI 同長文生成幾乎標配。' },
-    { id: 'function-calling', en: 'Function Calling', zh: '函式呼叫', tag: '工具', def: '模型輸出結構化「要 call 邊個工具＋參數」，由你嘅後端真正執行。做 agent 同整合系統嘅核心。' },
-    { id: 'tool-use', en: 'Tool Use', zh: '工具使用', tag: '工具', def: '廣義上模型可以揀用 search、DB、計算機等工具。設計好 schema 同權限先安全。' },
-    { id: 'json-mode', en: 'JSON Mode', zh: 'JSON 模式', tag: 'API', def: '要求模型輸出合法 JSON，方便程式解析。報表、表單填寫、workflow 輸入好用。' },
-    { id: 'structured-outputs', en: 'Structured Outputs', zh: '結構化輸出', tag: 'API', def: '用 schema 約束輸出欄位同型別，減少 parse 失敗。生產系統比「請輸出 JSON」更可靠。' },
-    { id: 'rag', en: 'RAG', zh: '檢索增強生成', tag: '架構', def: '先從知識庫搜相關文件，再塞入 prompt 畀模型答。適合私有文件、FAQ、內部知識助手。' },
-    { id: 'embeddings', en: 'Embeddings', zh: '向量嵌入', tag: '檢索', def: '把文字變成數字向量，用距離衡量語意相似。RAG、搜尋、去重都靠佢。' },
-    { id: 'vector-db', en: 'Vector Database', zh: '向量資料庫', tag: '檢索', def: '專門存同查 embeddings 嘅庫（如 Pinecone、pgvector）。規模大時比純記憶體搜更穩。' },
-    { id: 'chunking', en: 'Chunking', zh: '切片', tag: '檢索', def: '把長文件切成可檢索小段。切太碎會失上下文，太長會嘈雜——要按文檔類型調。' },
-    { id: 'hybrid-search', en: 'Hybrid Search', zh: '混合搜尋', tag: '檢索', def: '關鍵字搜尋 + 向量語意搜尋一齊用。專有名詞同精確 ID 往往關鍵字更準。' },
-    { id: 'reranking', en: 'Reranking', zh: '重排序', tag: '檢索', def: '先粗搜一堆候選，再用更準（通常更貴）模型重新排先。提升 RAG 命中率嘅常見招。' },
-    { id: 'context-window', en: 'Context Window', zh: '上下文視窗', tag: '基礎', def: '模型一次可以「睇到」嘅最大 token 數。超咗就要摘要、RAG 或分段處理。' },
-    { id: 'context-stuffing', en: 'Context Stuffing', zh: '硬塞上下文', tag: '反模式', def: '把所有文件一股腦塞入 prompt。短通，長就貴、慢、仲可能更嘈。優先用檢索。' },
-    { id: 'hallucination', en: 'Hallucination', zh: '幻覺', tag: '風險', def: '模型自信噉講錯事實。產品上要用 grounding、引用、驗證步驟同低溫輸出去減低。' },
-    { id: 'grounding', en: 'Grounding', zh: '落地／有據', tag: '品質', def: '要求答案必須建基於提供嘅資料來源。常見做法：引用段落、無資料就話唔知。' },
-    { id: 'eval', en: 'Evaluation (Eval)', zh: '評測', tag: '品質', def: '用固定測試集量度 prompt／模型表現。Freelance 交付前有 eval，先證明唔係「感覺好好」。' },
-    { id: 'golden-set', en: 'Golden Set', zh: '黃金測試集', tag: '品質', def: '人手標好嘅正確答案樣本。改 prompt 之後跑一遍，睇有冇退步。' },
-    { id: 'llm-as-judge', en: 'LLM-as-Judge', zh: '模型當裁判', tag: '品質', def: '用另一個 LLM 按準則打分。快但會有偏誤，重要場景要抽樣人工覆核。' },
-    { id: 'prompt-injection', en: 'Prompt Injection', zh: '提示注入', tag: '安全', def: '惡意內容嘗試覆寫你嘅系統指示（例如「忽略之前規則」）。處理用戶／網頁內容時要防。' },
-    { id: 'jailbreak', en: 'Jailbreak', zh: '越獄', tag: '安全', def: '用技巧令模型繞過安全政策。產品要有輸出過濾同政策層，唔好淨靠模型自律。' },
-    { id: 'guardrails', en: 'Guardrails', zh: '護欄', tag: '安全', def: '輸入／輸出檢查、拒答規則、PII 過濾等。生產級 AI 功能幾乎一定要加。' },
-    { id: 'pii', en: 'PII', zh: '個人識別資訊', tag: '安全', def: '姓名、電話、身分證等敏感資料。送去第三方 API 前要考慮遮罩、同意同合規。' },
-    { id: 'rate-limit', en: 'Rate Limit', zh: '速率限制', tag: 'API', def: '供應商限制每分鐘請求／token。產品要有重試、排隊同降級策略，否則高峰會爆。' },
-    { id: 'retry-backoff', en: 'Exponential Backoff', zh: '指數退避', tag: '工程', def: '失敗後等愈嚟愈耐先再試，避免打爆 API。配合 jitter 可以減少「一齊重試」。' },
-    { id: 'idempotency', en: 'Idempotency', zh: '冪等', tag: '工程', def: '同一請求重送多次結果一樣。付款、建立工單、寫入 DB 嘅 AI workflow 好重要。' },
-    { id: 'webhook', en: 'Webhook', zh: '回呼通知', tag: '整合', def: '外部系統用 HTTP POST 通知你事件發生。常見於异步生成完成、支付、CRM 更新。' },
-    { id: 'agent', en: 'AI Agent', zh: '智能體', tag: '架構', def: '可以規劃、用工具、多步完成目標嘅系統，唔止單次問答。要嚴格控權限同成本。' },
-    { id: 'multi-agent', en: 'Multi-agent', zh: '多代理', tag: '架構', def: '幾個角色分工（研究、寫作、審核）協作。複雜任務有用，但協調同除錯成本更高。' },
-    { id: 'planner-executor', en: 'Planner–Executor', zh: '規劃—執行', tag: '架構', def: '一個模型負責拆步驟，另一個（或同一套）負責執行工具。方便審計每一步。' },
-    { id: 'memory', en: 'Memory', zh: '記憶', tag: '架構', def: '跨 session 記住用戶偏好或事實。短記憶用對話歷史，長記憶常用向量庫或資料表。' },
-    { id: 'session', en: 'Session', zh: '會話', tag: '產品', def: '一次連續對話嘅狀態邊界。要決定保留幾耐、邊啲可寫入長期記憶。' },
-    { id: 'fine-tuning', en: 'Fine-tuning', zh: '微調', tag: '訓練', def: '用自家數據再訓練模型以改變風格或任務表現。成本高，多數情況先試 prompt／RAG。' },
-    { id: 'lora', en: 'LoRA', zh: '低秩適配', tag: '訓練', def: '一種輕量微調手法，只更新少量參數。自架開源模型時常見，雲端 API 較少直接接觸。' },
-    { id: 'distillation', en: 'Distillation', zh: '蒸餾', tag: '訓練', def: '用大模型教細模型，換取更便宜／更快嘅推斷。適合高流量固定任務。' },
-    { id: 'inference', en: 'Inference', zh: '推斷／推理服務', tag: '基礎', def: '用已訓練模型產生輸出嘅過程。API 計費、延遲、GPU 都係 inference 成本。' },
-    { id: 'latency', en: 'Latency', zh: '延遲', tag: '工程', def: '用戶等到第一個／完整答案嘅時間。串流、快取、細模型路由可以改善體感。' },
-    { id: 'ttft', en: 'TTFT', zh: '首 token 時間', tag: '工程', def: 'Time To First Token——串流時用戶見到第一個字嘅時間。聊天體驗關鍵指標。' },
-    { id: 'caching', en: 'Prompt Caching', zh: '提示快取', tag: '成本', def: '重用長而穩定嘅前綴（系統提示、文件）以減價同加速。長文件助手好有用。' },
-    { id: 'model-routing', en: 'Model Routing', zh: '模型路由', tag: '架構', def: '簡單問題用平／快模型，難題先升級貴模型。控制成本同時保質素。' },
-    { id: 'fallback', en: 'Fallback', zh: '降級備援', tag: '工程', def: '主模型失敗時改用備援模型或規則系統。生產服務唔可以「全站掛」。' },
-    { id: 'observability', en: 'Observability', zh: '可觀測性', tag: '工程', def: '記錄 prompt、延遲、錯誤、成本同用戶回饋。冇數據就唔知點優化 AI 功能。' },
-    { id: 'tracing', en: 'Tracing', zh: '追蹤', tag: '工程', def: '把一次請求嘅每個步驟（檢索、工具、模型）串成軌跡。除錯 agent 必備。' },
-    { id: 'cost-per-query', en: 'Cost per Query', zh: '每次查詢成本', tag: '商業', def: '把 token、工具、向量搜尋費用攤到每次用戶請求。報價同毛利要計清楚。' },
-    { id: 'anthropic-messages', en: 'Messages API', zh: '訊息式 API', tag: 'Claude', def: 'Anthropic 以角色訊息陣列對話嘅主流介面。整合 Claude 時多數由呢度入手。' },
-    { id: 'claude-tools', en: 'Claude Tools', zh: 'Claude 工具', tag: 'Claude', def: 'Claude 嘅 tool use／computer use 能力，可操作外部系統。做自動化助手時好關鍵。' },
-    { id: 'artifacts', en: 'Artifacts', zh: '產物面板', tag: '產品', def: '把長輸出（程式、文件）放到可編輯面板，而唔塞滿聊天。產品 UX 可借鑑。' },
-    { id: 'mcp', en: 'MCP', zh: '模型上下文協議', tag: '整合', def: 'Model Context Protocol——標準化工具／資料來源點樣接畀 AI 應用。減少每家自訂整合。' },
-    { id: 'langchain', en: 'LangChain', zh: '鏈式框架', tag: '框架', def: '常見 LLM 應用框架，包 prompt、檢索、agent 抽象。原型快，但生產要理解底層。' },
-    { id: 'llamaindex', en: 'LlamaIndex', zh: '索引框架', tag: '框架', def: '偏重文件索引同 RAG 管線嘅框架。知識庫類產品好常見。' },
-    { id: 'semantic-cache', en: 'Semantic Cache', zh: '語意快取', tag: '成本', def: '相似問題直接回先前答案，唔再打模型。FAQ 型產品可以大幅慳錢。' },
-    { id: 'embedding-model', en: 'Embedding Model', zh: '嵌入模型', tag: '檢索', def: '專門把文字轉向量嘅模型，通常比生成模型平同快。選錯維度／語言會影響檢索。' },
-    { id: 'multimodal', en: 'Multimodal', zh: '多模態', tag: '基礎', def: '可同時處理文字、圖像甚至音訊嘅模型。文件 OCR、截圖問答屬此類。' },
-    { id: 'vision-llm', en: 'Vision LLM', zh: '視覺語言模型', tag: '多模態', def: '可以「睇圖」再回答嘅 LLM。適合表單截圖、UI 除錯、發票理解。' },
-    { id: 'ocr', en: 'OCR', zh: '光學字元辨識', tag: '多模態', def: '從圖像提取文字。可以係專用引擎，亦可以由 vision model 做；要評測準確率。' },
-    { id: 'asr', en: 'ASR', zh: '語音轉文字', tag: '多模態', def: 'Automatic Speech Recognition。客服通話分析、語音筆記常同 LLM 串埋。' },
-    { id: 'tts', en: 'TTS', zh: '文字轉語音', tag: '多模態', def: 'Text-to-Speech。語音助手、無障礙同內容創作會用到。' },
-    { id: 'rag-eval', en: 'RAG Evaluation', zh: 'RAG 評測', tag: '品質', def: '分開量度檢索命中同答案正確。唔好淨睇最終答案——先知係搜錯定寫錯。' },
-    { id: 'citation', en: 'Citation', zh: '引用', tag: '產品', def: '答案標明來源段落。提升信任，亦方便用戶核對，減少幻覺傷害。' },
-    { id: 'human-in-loop', en: 'Human-in-the-loop', zh: '人工把關', tag: '產品', def: '高風險步驟要人確認先執行（發信、改價、刪資料）。Agent 上線初期幾乎必要。' },
-    { id: 'approval-workflow', en: 'Approval Workflow', zh: '審批流程', tag: '產品', def: 'AI 起草 → 人批核 → 系統執行。Freelance 做企業內部自動化好受落。' },
-    { id: 'a-b-prompt', en: 'Prompt A/B Test', zh: '提示詞 A/B', tag: '品質', def: '同時跑兩套 prompt，用指標同用戶回饋比較。持續優化必經之路。' },
-    { id: 'regression', en: 'Prompt Regression', zh: '提示詞回歸', tag: '品質', def: '改完一句 prompt 導致舊 case 變差。所以要有 golden set 同 CI 式檢查。' },
-    { id: 'schema-validation', en: 'Schema Validation', zh: '結構驗證', tag: '工程', def: '用 JSON Schema／Zod 驗證模型輸出。唔合格就重試或降級，避免髒數據入庫。' },
-    { id: 'deterministic', en: 'Deterministic Output', zh: '確定性輸出', tag: '工程', def: '同一輸入盡量得同一結果。資料管線、測試同合規場景會調低隨機性。' },
-    { id: 'non-deterministic', en: 'Non-determinism', zh: '非確定性', tag: '工程', def: '同 prompt 都可能有唔同輸出。測試要用近似比對、多種子，唔好 expect 字字相同。' },
-    { id: 'batch-inference', en: 'Batch Inference', zh: '批次推斷', tag: '成本', def: '非即時大量任務用批次 API，通常更平。適合夜間摘要、分類舊工單。' },
-    { id: 'online-inference', en: 'Online Inference', zh: '線上推斷', tag: '工程', def: '用戶等緊嘅即時請求。要優化延遲、超時同使用者可見錯誤訊息。' },
-    { id: 'embedding-drift', en: 'Embedding Drift', zh: '向量漂移', tag: '檢索', def: '換嵌入模型後舊向量唔可比。要重建索引，唔可以混用兩代向量。' },
-    { id: 'chunk-overlap', en: 'Chunk Overlap', zh: '切片重疊', tag: '檢索', def: '相鄰 chunk 保留重疊字，減少句子被切斷。常見 10–20% overlap。' },
-    { id: 'metadata-filter', en: 'Metadata Filter', zh: '中繼資料過濾', tag: '檢索', def: '按客戶、日期、文件類型先過濾再向量搜。多租戶 SaaS 幾乎必用。' },
-    { id: 'tenancy', en: 'Multi-tenancy', zh: '多租戶', tag: '架構', def: '多個客戶共用系統但資料隔離。AI 功能要防止跨租戶檢索洩漏。' },
-    { id: 'rbac', en: 'RBAC', zh: '角色權限', tag: '安全', def: 'Role-Based Access Control。Agent 用工具時要繼承用戶權限，唔好用上帝帳號。' },
-    { id: 'least-privilege', en: 'Least Privilege', zh: '最小權限', tag: '安全', def: '只畀完成任務所需權限。工具 API key、檔案範圍都要收窄。' },
-    { id: 'red-teaming', en: 'Red Teaming', zh: '紅隊測試', tag: '安全', def: '主動用攻擊式問題試爆產品。上線前搵注入、洩漏、有害輸出。' },
-    { id: 'content-moderation', en: 'Content Moderation', zh: '內容審核', tag: '安全', def: '攔截有害、違法或違規內容。可以模型審核 + 規則引擎雙層。' },
-    { id: 'sli-slo', en: 'SLI / SLO', zh: '服務指標／目標', tag: '工程', def: '例如成功率、P95 延遲。AI 功能都要訂，唔係「有時好慢都算啦」。' },
-    { id: 'canary', en: 'Canary Release', zh: '金絲雀發布', tag: '工程', def: '新 prompt／模型先放少量流量。出問題可即刻回滾，降低全量風險。' },
-    { id: 'feature-flag', en: 'Feature Flag', zh: '功能開關', tag: '工程', def: '用開關控制 AI 功能開關或模型版本。方便灰度同緊急關閉。' },
-    { id: 'tokenization', en: 'Tokenization', zh: '分詞／編碼', tag: '基礎', def: '把文字切成 tokens 嘅過程。中英混合時 token 數往往比你想像多。' },
-    { id: 'bpe', en: 'BPE', zh: '位元組對編碼', tag: '基礎', def: '常見 tokenization 演算法。明白佢有助解釋點解奇怪符號會「貴」。' },
-    { id: 'logit-bias', en: 'Logit Bias', zh: '對數幾率偏置', tag: 'API', def: '人手調高／調低某啲 token 出現機會。可用於禁詞或偏好格式，但要小心副作用。' },
-    { id: 'stop-sequences', en: 'Stop Sequences', zh: '停止序列', tag: 'API', def: '遇到指定字串就停生成。控制格式邊界、防止模型繼續胡謅。' },
-    { id: 'max-tokens', en: 'Max Tokens', zh: '最大輸出長度', tag: 'API', def: '限制一次回答可以生幾長。保護成本同超時，亦要夠長先完成任務。' },
-    { id: 'system-of-record', en: 'System of Record', zh: '權威資料源', tag: '架構', def: '真相存放處（CRM、DB）。AI 應讀寫呢度，而唔係把聊天記錄當唯一真相。' },
-    { id: 'etl-for-ai', en: 'AI Data Pipeline', zh: 'AI 資料管線', tag: '架構', def: '清洗、切片、嵌入、更新索引嘅自動化流程。知識庫產品嘅後台骨架。' },
-    { id: 'cold-start', en: 'Cold Start', zh: '冷啟動', tag: '產品', def: '新用戶／新庫未有數據時體驗差。可用預設模板、引導式收集、熱門 FAQ 頂住。' },
-    { id: 'personalization', en: 'Personalization', zh: '個人化', tag: '產品', def: '按用戶歷史調答案風格或建議。要透明同畀關閉，避免「嚇親」同隱私問題。' },
-    { id: 'copilot-pattern', en: 'Copilot Pattern', zh: '副駕駛模式', tag: '產品', def: 'AI 建議、人做最終決定。IDE、客服草稿、電郵回覆都係呢個模式。' },
-    { id: 'autonomous-pattern', en: 'Autonomous Pattern', zh: '自走模式', tag: '產品', def: 'AI 直接執行動作。只適合低風險、可回滾、有監察嘅流程。' },
-    { id: 'eval-harness', en: 'Eval Harness', zh: '評測架生', tag: '品質', def: '自動化跑測試集、打分、出報告嘅工具鏈。團隊協作改 prompt 時好有用。' },
-    { id: 'synthetic-data', en: 'Synthetic Data', zh: '合成數據', tag: '品質', def: '用模型生成訓練／測試樣本。可加速，但要防偏差同同質化，重要域仍要真人樣本。' },
-    { id: 'domain-adaptation', en: 'Domain Adaptation', zh: '領域適配', tag: '訓練', def: '令模型更懂你行業用語同流程。可用術語表、RAG、few-shot 或微調達成。' },
-    { id: 'glossary-prompt', en: 'Glossary in Prompt', zh: '術語表提示', tag: 'Prompt', def: '把公司專有名詞解釋塞入系統提示。平靚正嘅領域適配手法。' },
-    { id: 'output-contract', en: 'Output Contract', zh: '輸出契約', tag: '工程', def: '前後端約定模型必須遵守嘅欄位／狀態機。當 API contract 咁對待 AI 輸出。' },
-    { id: 'repair-loop', en: 'Repair Loop', zh: '修復迴圈', tag: '工程', def: '驗證失敗就將錯誤訊息交返模型改到合格。有上限次數，避免無限燒錢。' },
-    { id: 'tool-schema', en: 'Tool Schema', zh: '工具結構描述', tag: '工具', def: '用 JSON Schema 描述工具名稱、參數、必填項。寫得清楚，模型先 call 得準。' },
-    { id: 'parallel-tools', en: 'Parallel Tool Calls', zh: '並行工具呼叫', tag: '工具', def: '一次要求同時 call 多個獨立工具以減延遲。要注意副作用同冪等。' },
-    { id: 'computer-use', en: 'Computer Use', zh: '電腦操控', tag: 'Agent', def: '模型睇畫面並操作滑鼠鍵盤完成任務。能力強但安全同穩定風險更高。' },
-    { id: 'sandbox', en: 'Sandbox', zh: '沙盒', tag: '安全', def: '隔離執行代碼／工具嘅環境。畀模型跑 code 時幾乎必備。' },
-    { id: 'prompt-library', en: 'Prompt Library', zh: '提示詞庫', tag: '團隊', def: '版本化管理常用 prompt。Freelance 交付時方便客戶接手同迭代。' },
-    { id: 'versioning', en: 'Prompt Versioning', zh: '提示版本', tag: '工程', def: '每個上線 prompt 有版本號同變更說明。出問題可以 rollback 到上一個。' }
-  ];
+  const state = {
+    user: null,
+    profile: null,
+    goals: [],
+    stepsByGoal: {},
+    tasks: [],
+    assetsByTask: {},
+    captures: [],
+    streaks: [],
+    completions: [],
+    dailyTerms: [],
+    termDefs: {},
+    learned: [],
+    reviews: [],
+    reviewMood: null,
+    calMonth: null,
+    selectedDay: null,
+    ready: false,
+    authError: null
+  };
 
-  function hashStr(s) {
-    var h = 2166136261;
-    for (var i = 0; i < s.length; i++) {
-      h ^= s.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    return h >>> 0;
+  /* ---------- utils ---------- */
+  function todayStr() {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   }
-  function mulberry32(a) {
-    return function () {
-      var t = a += 0x6D2B79F5;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
-  function seededShuffle(arr, seed) {
-    var a = arr.slice();
-    var rand = mulberry32(seed >>> 0);
-    for (var i = a.length - 1; i > 0; i--) {
-      var j = Math.floor(rand() * (i + 1));
-      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
-    }
-    return a;
-  }
-  function ensureAiTermsState() {
-    if (!state.aiTerms || typeof state.aiTerms !== 'object') state.aiTerms = { learned: {}, daily: {} };
-    if (!state.aiTerms.learned || typeof state.aiTerms.learned !== 'object') state.aiTerms.learned = {};
-    if (!state.aiTerms.daily || typeof state.aiTerms.daily !== 'object') state.aiTerms.daily = {};
-  }
-  function pickNewDailyTermIds(ymd) {
-    var learned = state.aiTerms.learned;
-    var unused = AI_TERMS.filter(function (t) { return !learned[t.id]; });
-    var used = AI_TERMS.filter(function (t) { return !!learned[t.id]; });
-    var seed = hashStr('bobo-ai-terms|' + ymd);
-    var pick = seededShuffle(unused, seed);
-    var ids = pick.slice(0, 5).map(function (t) { return t.id; });
-    if (ids.length < 5) {
-      var fill = seededShuffle(used.length ? used : AI_TERMS, seed ^ 0x9e3779b9);
-      for (var i = 0; i < fill.length && ids.length < 5; i++) {
-        if (ids.indexOf(fill[i].id) === -1) ids.push(fill[i].id);
-      }
-    }
-    return ids;
-  }
-  function getDailyTerms(ymd) {
-    ensureAiTermsState();
-    var cached = state.aiTerms.daily[ymd];
-    if (!cached || !cached.length) {
-      cached = pickNewDailyTermIds(ymd);
-      state.aiTerms.daily[ymd] = cached;
-      try { save(); } catch (e) {}
-    }
-    return cached.map(function (id) {
-      return AI_TERMS.find(function (t) { return t.id === id; });
-    }).filter(Boolean);
-  }
-
-
-  function now() { return new Date(); }
-  function hkParts(d) {
-    const fmt = new Intl.DateTimeFormat('en-CA', {
-      timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-    });
-    return Object.fromEntries(fmt.formatToParts(d).filter(p => p.type !== 'literal').map(p => [p.type, p.value]));
-  }
-  function todayStr(d) {
-    const p = hkParts(d || now());
-    return p.year + '-' + p.month + '-' + p.day;
-  }
-  function timeStr(iso) {
-    const p = hkParts(new Date(iso));
-    return p.hour + ':' + p.minute;
-  }
-  function formatDisplayDate(ymd) {
-    const [y, m, d] = ymd.split('-');
-    return y + '年' + Number(m) + '月' + Number(d) + '日';
-  }
-  function addDaysYmd(ymd, n) {
-    const [y, m, d] = ymd.split('-').map(Number);
-    const utc = Date.UTC(y, m - 1, d) + n * 86400000;
-    const tmp = new Date(utc);
-    return tmp.getUTCFullYear() + '-' + String(tmp.getUTCMonth() + 1).padStart(2, '0') + '-' + String(tmp.getUTCDate()).padStart(2, '0');
-  }
-  function uid() {
-    return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
-  }
-
-  function buildLessons() {
-    const titles = [
-      '歡迎同環境準備', 'Prompt 基礎', '系統提示詞', 'Messages API',
-      'Temperature 同輸出控制', 'Tokens 同成本', 'Streaming 回應', 'Tool / Function calling',
-      'JSON Mode', '錯誤處理', 'Rate limits', '安全同拒答',
-      '長上下文', 'RAG 入門', 'Embeddings', 'Chunking 策略',
-      '向量資料庫', 'Evaluation 基礎', 'Prompt 測試', 'Few-shot 設計',
-      'Chain-of-thought', 'Agent 思維', '多步工具鏈', '記憶設計',
-      'Session 管理', 'Claude Projects', 'Artifacts 思維', '電腦使用概覽',
-      'Vision 入門', '文件理解', 'Code 助手模式', '重構工作流',
-      '測試生成', '文件撰寫', 'API 設計協作', '客戶需求訪談',
-      '報價同範圍', '交付清單', 'Freelance 產品化', 'Portfolio case',
-      'Landing page copy', 'Demo 腳本', 'WhatsApp / 客服 bot', '內部知識庫',
-      '自動化工作流', 'Zapier / n8n 概念', 'Webhook 整合', 'Auth 注意事項',
-      'Logging 同監察', '成本儀表板', 'A/B prompts', '使用者回饋循環',
-      '心理：拖延拆解', '心理：深度工作', '心理：失敗復盤', '心理：身份轉換',
-      'Blender：界面導覽', 'Blender：建模基礎', 'Blender：材質燈光', 'Blender：渲染輸出',
-      '角色：Nendoroid 比例', '角色：頭部造型', '角色：上色風格', '角色：品牌應用',
-      '總複習：LLM 專案', '總複習：Freelance 交付', '結業：下一個 Sprint'
-    ];
-    while (titles.length < LESSON_COUNT) titles.push('第 ' + (titles.length + 1) + ' 課');
-    return titles.slice(0, LESSON_COUNT).map((t, i) => ({ n: i + 1, title: t, done: false, doneAt: null }));
-  }
-
-  function seedData() {
-    const t = todayStr();
-    const y1 = addDaysYmd(t, -1);
-    const y2 = addDaysYmd(t, -2);
-    const y3 = addDaysYmd(t, -4);
-    return {
-      version: 1,
-      theme: 'light',
-      muted: false,
-      seededAt: now().toISOString(),
-      tasks: [
-        { id: uid(), title: '讀 Claude Academy 第 1–2 課', emoji: '📚', priority: 'high', date: t, done: false, doneAt: null, goalId: null, sample: true, createdAt: now().toISOString() },
-        { id: uid(), title: '草擬一個 Freelance AI 整合服務一頁紙', emoji: '📝', priority: 'mid', date: t, done: false, doneAt: null, goalId: null, sample: true, createdAt: now().toISOString() },
-        { id: uid(), title: 'Blender：開個新 scene 練建模 20 分鐘', emoji: '🎨', priority: 'low', date: t, done: false, doneAt: null, goalId: null, sample: true, createdAt: now().toISOString() },
-        { id: uid(), title: '【示範】寫完履歷 AI 專案段落', emoji: '✅', priority: 'mid', date: y1, done: true, doneAt: y1 + 'T14:30:00+08:00', goalId: null, sample: true, createdAt: y1 + 'T09:00:00+08:00' },
-        { id: uid(), title: '【示範】練 Prompt 30 分鐘', emoji: '🧠', priority: 'low', date: y2, done: true, doneAt: y2 + 'T20:10:00+08:00', goalId: null, sample: true, createdAt: y2 + 'T10:00:00+08:00' },
-        { id: uid(), title: '【示範】早期進度日', emoji: '🌱', priority: 'low', date: y3, done: true, doneAt: y3 + 'T18:00:00+08:00', goalId: null, sample: true, createdAt: y3 + 'T11:00:00+08:00' }
-      ],
-      goals: [
-        { id: 'g_main_claude', title: '掌握 Anthropic Claude / LLM API', track: 'main', progress: 8, target: 100, unit: '%', note: '主線：Freelance AI 整合', sample: true },
-        { id: 'g_main_freelance', title: '接第一單 AI 整合 freelance', track: 'main', progress: 1, target: 5, unit: '里程碑', note: '報價→demo→交付', sample: true },
-        { id: 'g_side_blender', title: 'Blender 3D 基礎', track: 'side', progress: 2, target: 10, unit: '練習', note: '支線：建模同渲染', sample: true },
-        { id: 'g_side_psych', title: '心理學內容輸出', track: 'side', progress: 0, target: 12, unit: '篇', note: '支線：內容創作', sample: true },
-        { id: 'g_side_nendo', title: 'Nendoroid 風格品牌公仔概念', track: 'side', progress: 1, target: 6, unit: '步驟', note: '支線：個人品牌形象', sample: true }
-      ],
-      lessons: (function () {
-        const ls = buildLessons();
-        ls[0].done = true; ls[0].doneAt = y2 + 'T21:00:00+08:00';
-        ls[1].done = true; ls[1].doneAt = y1 + 'T21:30:00+08:00';
-        return ls;
-      })(),
-      milestones: [
-        { id: uid(), title: '完成 Claude Academy 首 10 課', due: addDaysYmd(t, 14), achieved: false, achievedAt: null, emoji: '📘', sample: true },
-        { id: uid(), title: '上線 Freelance 服務一頁介紹', due: addDaysYmd(t, 21), achieved: false, achievedAt: null, emoji: '🚀', sample: true },
-        { id: uid(), title: '連續 7 日有進度', due: addDaysYmd(t, 7), achieved: false, achievedAt: null, emoji: '🔥', sample: true, autoKey: 'streak7' },
-        { id: uid(), title: '【示範】完成裁員後第一個學習日', due: y3, achieved: true, achievedAt: y3 + 'T19:00:00+08:00', emoji: '💪', sample: true }
-      ],
-      inbox: [
-        { id: uid(), text: '【示範】客服 bot + WhatsApp 整合點報價？', createdAt: now().toISOString(), sample: true },
-        { id: uid(), text: '【示範】研究 n8n 接 Claude API', createdAt: now().toISOString(), sample: true }
-      ],
-      reviews: {
-        [y1]: { done: '讀咗兩課 Prompt、改咗履歷一段', stuck: '報價範圍仲未夠清晰', tomorrow: '寫服務一頁紙大綱', mood: '🙂', savedAt: y1 + 'T22:00:00+08:00' }
-      },
-      activityDays: {},
-      aiTerms: { learned: {
-        'llm': { learnedAt: y2 + 'T20:00:00+08:00', day: y2, sample: true },
-        'tokens': { learnedAt: y1 + 'T20:30:00+08:00', day: y1, sample: true }
-      }, daily: {} }
-    };
-  }
-
-  let state = null;
-  let sb = null;
-  let syncId = null;
-  let syncStatus = 'offline';
-  let syncTimer = null;
-  let localUpdatedAt = null;
-  let syncing = false;
-
-  function getOrCreateSyncId() {
-    var id = localStorage.getItem(SYNC_ID_KEY);
-    if (!id) {
-      id = (typeof crypto !== 'undefined' && crypto.randomUUID)
-        ? crypto.randomUUID()
-        : ('sync_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10));
-      localStorage.setItem(SYNC_ID_KEY, id);
-    }
-    return id;
-  }
-
-  function initSupabase() {
+  function formatDisplayDate(iso) {
     try {
-      if (window.supabase && typeof window.supabase.createClient === 'function') {
-        sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      }
-    } catch (e) {
-      console.error(e);
-      sb = null;
-    }
+      const d = iso ? new Date(iso + 'T12:00:00') : new Date();
+      return new Intl.DateTimeFormat('zh-HK', { timeZone: TZ, year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' }).format(d);
+    } catch { return iso || ''; }
   }
-
-  function setSyncStatus(s) {
-    syncStatus = s;
-    var badge = $('#syncStatusBadge');
-    var text = $('#syncStatusText');
-    if (!badge || !text) return;
-    badge.className = 'sync-status ' + s;
-    text.textContent = s === 'synced' ? '已同步' : (s === 'syncing' ? '同步中' : '離線');
+  function formatTime(ts) {
+    if (!ts) return '';
+    return new Intl.DateTimeFormat('zh-HK', { timeZone: TZ, hour: '2-digit', minute: '2-digit' }).format(new Date(ts));
   }
-
-  function refreshSyncUi() {
-    var el = $('#syncIdDisplay');
-    if (el) el.textContent = syncId || '—';
-    setSyncStatus(syncStatus);
+  function addDays(iso, n) {
+    const d = new Date(iso + 'T12:00:00Z');
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
   }
-
-  function migrateStateShape() {
-    if (!state.theme) state.theme = 'light';
-    if (typeof state.muted !== 'boolean') state.muted = false;
-    if (!state.lessons || state.lessons.length !== LESSON_COUNT) {
-      var doneMap = {};
-      (state.lessons || []).forEach(function (l) { doneMap[l.n] = l; });
-      state.lessons = buildLessons().map(function (l) {
-        return doneMap[l.n]
-          ? Object.assign({}, l, { done: !!doneMap[l.n].done, doneAt: doneMap[l.n].doneAt || null })
-          : l;
-      });
-    }
-    if (!state.reviews) state.reviews = {};
-    if (!state.inbox) state.inbox = [];
-    if (!state.tasks) state.tasks = [];
-    if (!state.goals) state.goals = [];
-    if (!state.milestones) state.milestones = [];
-    if (!state.activityDays) state.activityDays = {};
-    ensureAiTermsState();
-  }
-
-  function applyTheme() {
-    var theme = (state && state.theme === 'dark') ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', theme);
-    var meta = document.getElementById('themeColorMeta') || document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#121212' : '#58CC02');
-    var toggle = $('#themeToggle');
-    if (toggle) toggle.textContent = theme === 'dark' ? '☀️' : '🌙';
-    var sw = $('#themeSwitch');
-    if (sw) {
-      sw.classList.toggle('on', theme === 'dark');
-      sw.setAttribute('aria-checked', theme === 'dark' ? 'true' : 'false');
-    }
-  }
-
-  function setTheme(theme) {
-    if (!state) return;
-    state.theme = theme === 'dark' ? 'dark' : 'light';
-    applyTheme();
-    save();
-  }
-
-  function toggleTheme() {
-    setTheme(state.theme === 'dark' ? 'light' : 'dark');
-    playSfx('toggle');
-  }
-
-  /* —— Duolingo-like Web Audio SFX —— */
-  var audioCtx = null;
-  var audioUnlocked = false;
-
-  function ensureAudio() {
-    try {
-      var AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return null;
-      if (!audioCtx) audioCtx = new AC();
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume().catch(function () {});
-      }
-      audioUnlocked = true;
-      return audioCtx;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function unlockAudioFromGesture() {
-    ensureAudio();
-  }
-
-  function tone(freq, start, dur, type, gainPeak) {
-    var ctx = ensureAudio();
-    if (!ctx) return;
-    var osc = ctx.createOscillator();
-    var g = ctx.createGain();
-    osc.type = type || 'sine';
-    osc.frequency.setValueAtTime(freq, start);
-    g.gain.setValueAtTime(0.0001, start);
-    g.gain.exponentialRampToValueAtTime(gainPeak || 0.08, start + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-    osc.connect(g);
-    g.connect(ctx.destination);
-    osc.start(start);
-    osc.stop(start + dur + 0.02);
-  }
-
-  function playSfx(kind) {
-    if (!state || state.muted) return;
-    var ctx = ensureAudio();
-    if (!ctx) return;
-    var t = ctx.currentTime;
-    if (kind === 'success') {
-      // cheerful two-note chime
-      tone(523.25, t, 0.12, 'triangle', 0.09);
-      tone(659.25, t + 0.08, 0.14, 'triangle', 0.08);
-      tone(783.99, t + 0.16, 0.18, 'sine', 0.06);
-    } else if (kind === 'toggle') {
-      tone(420, t, 0.05, 'square', 0.035);
-      tone(320, t + 0.04, 0.06, 'sine', 0.03);
-    } else {
-      // soft pop / tap
-      tone(680, t, 0.045, 'sine', 0.055);
-      tone(920, t + 0.018, 0.04, 'triangle', 0.03);
-    }
-  }
-
-  function applyMuteUi() {
-    var muted = !!(state && state.muted);
-    var btn = $('#muteToggle');
-    if (btn) {
-      btn.textContent = muted ? '🔇' : '🔊';
-      btn.classList.toggle('muted', muted);
-      btn.setAttribute('aria-pressed', muted ? 'true' : 'false');
-      btn.setAttribute('title', muted ? '有聲' : '靜音');
-      btn.setAttribute('aria-label', muted ? '有聲' : '靜音');
-    }
-    var sw = $('#soundSwitch');
-    if (sw) {
-      // switch ON = sound on (not muted)
-      sw.classList.toggle('on', !muted);
-      sw.setAttribute('aria-checked', muted ? 'false' : 'true');
-    }
-    var hint = $('#muteHintText');
-    if (hint) hint.textContent = muted ? '靜音 · 撳右上角恢復聲效' : '有聲 · Duolingo 式輕點同完成叮';
-  }
-
-  function setMuted(muted) {
-    if (!state) return;
-    state.muted = !!muted;
-    applyMuteUi();
-    save();
-  }
-
-  function toggleMute() {
-    setMuted(!(state && state.muted));
-    // play a soft toggle only when turning sound back on
-    if (state && !state.muted) playSfx('toggle');
-  }
-
-  function persistLocalOnly() {
-    localStorage.setItem(KEY, JSON.stringify(state));
-    localUpdatedAt = new Date().toISOString();
-    localStorage.setItem(LOCAL_UPDATED_KEY, localUpdatedAt);
-  }
-
-  function scheduleCloudSync() {
-    if (syncTimer) clearTimeout(syncTimer);
-    syncTimer = setTimeout(function () { upsertCloud(); }, 800);
-  }
-
-  async function upsertCloud() {
-    if (!sb || !syncId) {
-      setSyncStatus('offline');
-      return false;
-    }
-    if (syncing) return false;
-    syncing = true;
-    setSyncStatus('syncing');
-    try {
-      var nowIso = new Date().toISOString();
-      var res = await sb.from('bobo_personal_os').upsert(
-        { id: syncId, data: state, updated_at: nowIso },
-        { onConflict: 'id' }
-      );
-      if (res.error) throw res.error;
-      localUpdatedAt = nowIso;
-      localStorage.setItem(LOCAL_UPDATED_KEY, localUpdatedAt);
-      setSyncStatus('synced');
-      return true;
-    } catch (e) {
-      console.error(e);
-      setSyncStatus('offline');
-      return false;
-    } finally {
-      syncing = false;
-    }
-  }
-
-  async function pullAndMerge() {
-    if (!sb || !syncId) {
-      setSyncStatus('offline');
-      return;
-    }
-    setSyncStatus('syncing');
-    try {
-      var res = await sb.from('bobo_personal_os')
-        .select('id, data, updated_at')
-        .eq('id', syncId)
-        .maybeSingle();
-      if (res.error) throw res.error;
-      if (!res.data) {
-        await upsertCloud();
-        return;
-      }
-      var cloudTime = new Date(res.data.updated_at).getTime();
-      var localTime = localUpdatedAt ? new Date(localUpdatedAt).getTime() : 0;
-      if (cloudTime > localTime && res.data.data) {
-        state = res.data.data;
-        migrateStateShape();
-        rollIncompleteTasks();
-        recomputeActivity();
-        localUpdatedAt = res.data.updated_at;
-        localStorage.setItem(KEY, JSON.stringify(state));
-        localStorage.setItem(LOCAL_UPDATED_KEY, localUpdatedAt);
-        applyTheme();
-        renderAll();
-        refreshSyncUi();
-        setSyncStatus('synced');
-      } else if (localTime >= cloudTime) {
-        await upsertCloud();
-      } else {
-        setSyncStatus('synced');
-      }
-    } catch (e) {
-      console.error(e);
-      setSyncStatus('offline');
-    }
-  }
-
-  function load() {
-    try {
-      localUpdatedAt = localStorage.getItem(LOCAL_UPDATED_KEY);
-      var raw = localStorage.getItem(KEY);
-      if (!raw) {
-        state = seedData();
-        rollIncompleteTasks();
-        recomputeActivity();
-        persistLocalOnly();
-        return;
-      }
-      state = JSON.parse(raw);
-      migrateStateShape();
-      rollIncompleteTasks();
-      recomputeActivity();
-      persistLocalOnly();
-    } catch (e) {
-      console.error(e);
-      state = seedData();
-      recomputeActivity();
-      persistLocalOnly();
-    }
-  }
-
-  function save() {
-    persistLocalOnly();
-    scheduleCloudSync();
-  }
-
-  function rollIncompleteTasks() {
-    const t = todayStr();
-    state.tasks.forEach(task => {
-      if (!task.done && task.date < t) {
-        task.date = t;
-        task.rolled = true;
-      }
-    });
-  }
-
-  function daysWithProgress() {
-    const set = new Set();
-    state.tasks.forEach(task => {
-      if (task.done && task.doneAt) set.add(todayStr(new Date(task.doneAt)));
-      else if (task.done && task.date) set.add(task.date);
-    });
-    state.lessons.forEach(l => {
-      if (l.done && l.doneAt) set.add(todayStr(new Date(l.doneAt)));
-    });
-    Object.keys(state.reviews || {}).forEach(d => set.add(d));
-    ensureAiTermsState();
-    Object.keys(state.aiTerms.learned).forEach(function (id) {
-      var rec = state.aiTerms.learned[id];
-      if (rec && rec.day) set.add(rec.day);
-      else if (rec && rec.learnedAt) set.add(todayStr(new Date(rec.learnedAt)));
-    });
-    return set;
-  }
-
-  function recomputeActivity() {
-    state.activityDays = {};
-    daysWithProgress().forEach(d => { state.activityDays[d] = true; });
-  }
-
-  function calcStreak() {
-    const days = daysWithProgress();
-    let streak = 0;
-    let cursor = todayStr();
-    if (!days.has(cursor)) cursor = addDaysYmd(cursor, -1);
-    while (days.has(cursor)) {
-      streak++;
-      cursor = addDaysYmd(cursor, -1);
-    }
-    return streak;
-  }
-
-  function todayOpenTasks() {
-    const t = todayStr();
-    return state.tasks.filter(x => x.date === t && !x.done);
-  }
-  function todayDoneTasks() {
-    const t = todayStr();
-    return state.tasks.filter(x => {
-      if (!x.done) return false;
-      if (x.doneAt) return todayStr(new Date(x.doneAt)) === t;
-      return x.date === t;
-    });
-  }
-
-  function checkAutoMilestones() {
-    const streak = calcStreak();
-    const doneLessons = state.lessons.filter(l => l.done).length;
-    state.milestones.forEach(m => {
-      if (m.achieved) return;
-      if (m.autoKey === 'streak7' && streak >= 7) {
-        m.achieved = true;
-        m.achievedAt = now().toISOString();
-        toast('🏆 解鎖：連續 7 日！');
-        celebrate();
-      }
-    });
-    const first10 = state.milestones.find(m => m.title && m.title.indexOf('首 10') !== -1);
-    if (first10 && !first10.achieved && doneLessons >= 10) {
-      first10.achieved = true;
-      first10.achievedAt = now().toISOString();
-      toast('🏆 完成首 10 課！');
-      celebrate();
-    }
-  }
-
-  function $(sel, root) { return (root || document).querySelector(sel); }
-  function $all(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
-
-  function toast(msg) {
-    const el = $('#toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    clearTimeout(toast._t);
-    toast._t = setTimeout(function () { el.classList.remove('show'); }, 2200);
-  }
-
-  function celebrate() {
-    playSfx('success');
-    const el = $('#celeb');
-    el.classList.add('show');
-    clearTimeout(celebrate._t);
-    celebrate._t = setTimeout(function () { el.classList.remove('show'); }, 650);
-  }
-
+  function uid() { return state.user && state.user.id; }
+  function goalByKind(kind) { return state.goals.find(g => g.kind === kind && g.is_system); }
   function esc(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+  function celebrate() {
+    const el = document.getElementById('celeb');
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 650);
   }
 
-  function prioLabel(p) {
-    if (p === 'high') return '<span class="badge prio-high">高優先</span>';
-    if (p === 'mid') return '<span class="badge prio-mid">中</span>';
-    return '<span class="badge">低</span>';
+  /* ---------- sound ---------- */
+  let audioCtx = null;
+  function muted() { return !!(state.profile && state.profile.muted); }
+  function playTone(freq, dur, type, gain) {
+    if (muted()) return;
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type || 'sine';
+      o.frequency.value = freq;
+      g.gain.value = gain || 0.05;
+      o.connect(g); g.connect(audioCtx.destination);
+      const now = audioCtx.currentTime;
+      g.gain.setValueAtTime(gain || 0.05, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+      o.start(now); o.stop(now + dur);
+    } catch (_) {}
+  }
+  function sfxClick() { playTone(660, 0.06, 'triangle', 0.04); }
+  function sfxDone() { playTone(523, 0.08, 'sine', 0.05); setTimeout(() => playTone(784, 0.12, 'sine', 0.05), 70); }
+
+  /* ---------- theme / mute ---------- */
+  function applyTheme(theme) {
+    const dark = theme === 'dark';
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    const meta = document.getElementById('themeColorMeta');
+    if (meta) meta.setAttribute('content', dark ? '#121212' : '#58CC02');
+    localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
+    const sw = document.getElementById('themeSwitch');
+    const btn = document.getElementById('themeToggle');
+    if (sw) { sw.classList.toggle('on', dark); sw.setAttribute('aria-checked', dark ? 'true' : 'false'); }
+    if (btn) btn.textContent = dark ? '☀️' : '🌙';
+  }
+  function applyMute(isMuted) {
+    localStorage.setItem(MUTE_KEY, isMuted ? '1' : '0');
+    const btn = document.getElementById('muteToggle');
+    const sw = document.getElementById('soundSwitch');
+    const hint = document.getElementById('muteHintText');
+    if (btn) {
+      btn.textContent = isMuted ? '🔇' : '🔊';
+      btn.classList.toggle('muted', isMuted);
+      btn.setAttribute('aria-pressed', isMuted ? 'true' : 'false');
+    }
+    if (sw) { sw.classList.toggle('on', !isMuted); sw.setAttribute('aria-checked', !isMuted ? 'true' : 'false'); }
+    if (hint) hint.textContent = isMuted ? '已靜音' : '有聲 · Duolingo 式輕點同完成叮';
+  }
+  async function setTheme(theme) {
+    applyTheme(theme);
+    if (state.profile) {
+      state.profile.theme = theme;
+      await sb.from('pos_profiles').update({ theme }).eq('user_id', uid());
+    }
+  }
+  async function setMuted(isMuted) {
+    if (state.profile) state.profile.muted = isMuted;
+    applyMute(isMuted);
+    if (state.profile) await sb.from('pos_profiles').update({ muted: isMuted }).eq('user_id', uid());
   }
 
-  function markProgressToday() {
-    state.activityDays[todayStr()] = true;
-    recomputeActivity();
+  /* ---------- auth ---------- */
+  function showAuthError(err) {
+    state.authError = err;
+    const box = document.getElementById('authError');
+    const code = (err && (err.code || err.error_code)) || '';
+    const msg = (err && err.message) || String(err);
+    let html = '<h2>⚠️ 未能登入雲端</h2>';
+    if (code === 'anonymous_provider_disabled' || /anonymous/i.test(msg)) {
+      html += '<p>Supabase 嘅 <strong>Anonymous</strong> 登入未開啟，所以進度冇辦法寫入真正 database。</p>';
+      html += '<ol><li>打開 Supabase Dashboard → Authentication → Providers</li>';
+      html += '<li>開啟 <strong>Anonymous Sign-Ins</strong></li>';
+      html += '<li>返嚟呢度刷新頁面</li></ol>';
+    } else {
+      html += '<p>' + esc(msg) + '</p><p class="hint">請刷新再試；如果持續失敗，檢查 Supabase Auth 設定。</p>';
+    }
+    box.innerHTML = html;
+    box.hidden = false;
+    document.getElementById('bootScreen').style.display = 'none';
+    setSyncBadge('offline', '登入失敗');
+  }
+
+  async function ensureAuth() {
+    const { data: sessData, error: sessErr } = await sb.auth.getSession();
+    if (sessErr) throw sessErr;
+    if (sessData.session && sessData.session.user) {
+      state.user = sessData.session.user;
+      return;
+    }
+    const { data, error } = await sb.auth.signInAnonymously();
+    if (error) throw error;
+    state.user = data.user;
+  }
+
+  /* ---------- load ---------- */
+  async function loadAll() {
+    const day = todayStr();
+    const uidv = uid();
+    const [
+      profileRes, goalsRes, stepsRes, tasksRes, capturesRes,
+      streaksRes, compsRes, learnedRes, reviewsRes, dailyRes
+    ] = await Promise.all([
+      sb.from('pos_profiles').select('*').eq('user_id', uidv).maybeSingle(),
+      sb.from('pos_goals').select('*').eq('user_id', uidv).eq('archived', false).order('sort_order'),
+      sb.from('pos_goal_steps').select('*').eq('user_id', uidv).order('step_index'),
+      sb.from('pos_tasks').select('*').eq('user_id', uidv).eq('day', day).order('sort_order'),
+      sb.from('pos_captures').select('*').eq('user_id', uidv).eq('status', 'inbox').order('created_at', { ascending: false }),
+      sb.from('pos_streaks').select('*').eq('user_id', uidv).order('day', { ascending: false }).limit(400),
+      sb.from('pos_completions').select('*').eq('user_id', uidv).order('occurred_at', { ascending: false }).limit(500),
+      sb.from('pos_ai_term_progress').select('*').eq('user_id', uidv).order('learned_at', { ascending: false }),
+      sb.from('pos_reviews').select('*').eq('user_id', uidv).order('day', { ascending: false }).limit(14),
+      sb.from('pos_ai_term_daily').select('*').eq('user_id', uidv).eq('day', day).maybeSingle()
+    ]);
+
+    const firstErr = [profileRes, goalsRes, stepsRes, tasksRes, capturesRes, streaksRes, compsRes, learnedRes, reviewsRes, dailyRes]
+      .map(r => r.error).find(Boolean);
+    if (firstErr) throw firstErr;
+
+    state.profile = profileRes.data;
+    state.goals = goalsRes.data || [];
+    state.stepsByGoal = {};
+    (stepsRes.data || []).forEach(s => {
+      (state.stepsByGoal[s.goal_id] || (state.stepsByGoal[s.goal_id] = [])).push(s);
+    });
+    state.tasks = tasksRes.data || [];
+    state.captures = capturesRes.data || [];
+    state.streaks = streaksRes.data || [];
+    state.completions = compsRes.data || [];
+    state.learned = learnedRes.data || [];
+    state.reviews = reviewsRes.data || [];
+
+    // assets for today's tasks
+    const taskIds = state.tasks.map(t => t.id);
+    state.assetsByTask = {};
+    if (taskIds.length) {
+      const { data: assets } = await sb.from('pos_task_assets').select('*').in('task_id', taskIds);
+      (assets || []).forEach(a => {
+        (state.assetsByTask[a.task_id] || (state.assetsByTask[a.task_id] = [])).push(a);
+      });
+    }
+
+    // daily terms
+    await ensureDailyTerms(dailyRes.data);
+
+    applyTheme(state.profile?.theme || localStorage.getItem(THEME_KEY) || 'light');
+    applyMute(!!(state.profile?.muted ?? (localStorage.getItem(MUTE_KEY) === '1')));
+  }
+
+  async function ensureDailyTerms(existing) {
+    const day = todayStr();
+    let ids = existing && existing.term_ids ? existing.term_ids : null;
+    if (!ids || !ids.length) {
+      const learnedIds = new Set(state.learned.map(l => l.term_id));
+      const { data: allTerms, error } = await sb.from('pos_ai_terms').select('id').order('sort_order');
+      if (error) throw error;
+      const unused = (allTerms || []).map(t => t.id).filter(id => !learnedIds.has(id));
+      const pool = unused.length >= 5 ? unused : (allTerms || []).map(t => t.id);
+      // deterministic-ish shuffle by day
+      const seed = day.split('-').join('');
+      const shuffled = pool.slice().sort((a, b) => {
+        const ha = (a + seed).split('').reduce((n, c) => n + c.charCodeAt(0), 0);
+        const hb = (b + seed).split('').reduce((n, c) => n + c.charCodeAt(0), 0);
+        return ha - hb;
+      });
+      ids = shuffled.slice(0, 5);
+      await sb.from('pos_ai_term_daily').upsert({ user_id: uid(), day, term_ids: ids }, { onConflict: 'user_id,day' });
+    }
+    const { data: defs } = await sb.from('pos_ai_terms').select('*').in('id', ids);
+    state.termDefs = {};
+    (defs || []).forEach(d => { state.termDefs[d.id] = d; });
+    state.dailyTerms = ids.map(id => state.termDefs[id]).filter(Boolean);
+  }
+
+  /* ---------- daily defaults + roll ---------- */
+  async function rollIncompleteTasks() {
+    const day = todayStr();
+    // Find open tasks from previous days
+    const { data: oldOpen } = await sb.from('pos_tasks')
+      .select('*')
+      .eq('user_id', uid())
+      .eq('status', 'open')
+      .lt('day', day);
+    if (!oldOpen || !oldOpen.length) return;
+
+    for (const t of oldOpen) {
+      await sb.from('pos_tasks').update({ status: 'rolled' }).eq('id', t.id);
+      // recreate on today if room and not default duplicate
+      const { data: todayTasks } = await sb.from('pos_tasks').select('id,action_page,title,status').eq('user_id', uid()).eq('day', day);
+      const openCount = (todayTasks || []).filter(x => x.status === 'open' || x.status === 'done').length;
+      // Only roll non-default custom tasks into today if under cap; defaults recreated by ensureTodayDefaults
+      if (!t.is_default && openCount < MAX_TODAY) {
+        const exists = (todayTasks || []).some(x => x.title === t.title && x.status !== 'rolled');
+        if (!exists) {
+          await sb.from('pos_tasks').insert({
+            user_id: uid(),
+            day,
+            title: t.title,
+            detail: t.detail,
+            status: 'open',
+            goal_id: t.goal_id,
+            goal_step_id: t.goal_step_id,
+            action_page: t.action_page,
+            is_default: false,
+            sort_order: 90
+          });
+        }
+      }
+    }
+  }
+
+  async function ensureTodayDefaults() {
+    const day = todayStr();
+    const gTerms = goalByKind('ai_terms');
+    const gReview = goalByKind('daily_review');
+    const gAcademy = goalByKind('academy');
+
+    const { data: existing } = await sb.from('pos_tasks').select('*').eq('user_id', uid()).eq('day', day);
+    const list = existing || [];
+    const has = (page) => list.some(t => t.action_page === page && t.status !== 'rolled');
+
+    const inserts = [];
+    if (gTerms && !has('ai_terms')) {
+      inserts.push({
+        user_id: uid(), day, title: '每日五條 AI Terms', detail: '去頁面學今日 5 個詞，學完會自動勾任務。',
+        status: 'open', goal_id: gTerms.id, action_page: 'ai_terms', is_default: true, sort_order: 1
+      });
+    }
+    if (gReview && !has('daily_review')) {
+      inserts.push({
+        user_id: uid(), day, title: '每日回顧', detail: '收工 5 分鐘：完成、卡住、聽日第一件。',
+        status: 'open', goal_id: gReview.id, action_page: 'daily_review', is_default: true, sort_order: 2
+      });
+    }
+
+    // Third slot: next academy step if room
+    const activeCount = list.filter(t => t.status === 'open' || t.status === 'done').length + inserts.length;
+    if (gAcademy && activeCount < MAX_TODAY && !list.some(t => t.action_page === 'academy' && t.status !== 'rolled')) {
+      const steps = state.stepsByGoal[gAcademy.id] || [];
+      const next = steps.find(s => !s.done);
+      if (next) {
+        inserts.push({
+          user_id: uid(), day,
+          title: '讀 Claude Academy：' + next.title,
+          detail: '完成後會自動更新課程目標進度。',
+          status: 'open', goal_id: gAcademy.id, goal_step_id: next.id,
+          action_page: 'academy', is_default: true, sort_order: 3
+        });
+      }
+    }
+
+    if (inserts.length) {
+      const { error } = await sb.from('pos_tasks').insert(inserts);
+      if (error) throw error;
+      const { data: refreshed } = await sb.from('pos_tasks').select('*').eq('user_id', uid()).eq('day', day).order('sort_order');
+      state.tasks = refreshed || [];
+    } else {
+      state.tasks = list.sort((a, b) => a.sort_order - b.sort_order);
+    }
+  }
+
+  /* ---------- streak calc ---------- */
+  function currentStreak() {
+    const hit = new Set(state.streaks.filter(s => s.hit).map(s => s.day));
+    let d = todayStr();
+    // if today not hit yet, start from yesterday
+    if (!hit.has(d)) d = addDays(d, -1);
+    let n = 0;
+    while (hit.has(d)) { n++; d = addDays(d, -1); }
+    return n;
+  }
+
+  /* ---------- render ---------- */
+  function setSyncBadge(cls, text) {
+    const badge = document.getElementById('syncStatusBadge');
+    const txt = document.getElementById('syncStatusText');
+    badge.className = 'sync-status ' + cls;
+    txt.textContent = text;
+  }
+
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+    if (['terms', 'review', 'calendar', 'settings'].includes(name)) {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    }
+    if (name === 'terms') renderTerms();
+    if (name === 'review') renderReview();
+    if (name === 'calendar') renderCalendar();
+    if (name === 'goals') renderGoals();
+    if (name === 'course') renderCourse();
+    if (name === 'milestones') renderMilestones();
+    if (name === 'today') renderToday();
+    if (name === 'settings') renderSettings();
+  }
+
+  function renderToday() {
+    const day = todayStr();
+    document.getElementById('todayDateLabel').textContent = formatDisplayDate(day);
+    const tasks = state.tasks.filter(t => t.status !== 'rolled');
+    const done = tasks.filter(t => t.status === 'done').length;
+    const open = tasks.filter(t => t.status === 'open').length;
+    document.getElementById('todayDoneCount').textContent = done;
+    document.getElementById('todayLeftCount').textContent = open;
+    document.getElementById('todayLimitWarn').hidden = tasks.length < MAX_TODAY;
+    document.getElementById('btnAddTask').disabled = tasks.length >= MAX_TODAY;
+
+    const list = document.getElementById('todayTaskList');
+    if (!tasks.length) {
+      list.innerHTML = '<div class="empty"><div class="emoji">☀️</div><h3>今日未有任務</h3><p>預設任務會自動出現；你亦可以自己加。</p></div>';
+    } else {
+      list.innerHTML = tasks.map(t => {
+        const isDone = t.status === 'done';
+        const goto = t.action_page && t.action_page !== 'none'
+          ? `<button type="button" class="task-goto" data-goto="${esc(t.action_page)}">去頁面 →</button>` : '';
+        return `<div class="task ${isDone ? 'done' : ''}" data-task="${t.id}">
+          <button type="button" class="check" data-toggle="${t.id}" aria-label="完成">${isDone ? '✓' : ''}</button>
+          <div class="task-body" data-detail="${t.id}">
+            <div class="task-title">${esc(t.title)}</div>
+            <div class="task-meta">
+              ${t.is_default ? '<span class="badge">每日預設</span>' : ''}
+              ${t.goal_id ? '<span class="badge">連目標</span>' : ''}
+              ${isDone && t.completed_at ? '<span class="badge">' + esc(formatTime(t.completed_at)) + '</span>' : ''}
+            </div>
+            ${goto}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    document.getElementById('streakNum').textContent = currentStreak();
+    renderInbox();
+  }
+
+  function renderInbox() {
+    document.getElementById('inboxCount').textContent = state.captures.length ? state.captures.length + ' 則' : '';
+    const box = document.getElementById('inboxList');
+    if (!state.captures.length) {
+      box.innerHTML = '<p class="hint">速記會出現喺呢度，之後先分類。</p>';
+      return;
+    }
+    box.innerHTML = state.captures.map(c => `
+      <div class="inbox-item" data-cap="${c.id}">
+        <p>${esc(c.body)}</p>
+        <button type="button" class="icon-btn" data-cap-today="${c.id}" title="變今日任務">✅</button>
+        <button type="button" class="icon-btn" data-cap-dismiss="${c.id}" title="刪除">🗑️</button>
+      </div>`).join('');
+  }
+
+  function renderGoals() {
+    const tracks = { main: [], side: [], habit: [] };
+    state.goals.forEach(g => { (tracks[g.track] || tracks.side).push(g); });
+    function card(g) {
+      const total = g.progress_total || 0;
+      const cur = g.progress_current || 0;
+      const pct = total > 0 ? Math.round(cur / total * 100) : (g.kind === 'ai_terms' || g.kind === 'daily_review' ? Math.min(100, cur) : 0);
+      const barW = total > 0 ? pct : (cur > 0 ? Math.min(100, cur) : 0);
+      const tag = g.track === 'main' ? 'track-main' : g.track === 'habit' ? 'track-habit' : 'track-side';
+      const tagLabel = g.track === 'main' ? '主線' : g.track === 'habit' ? '習慣' : '支線';
+      const sub = total > 0 ? `${cur} / ${total}` : (g.kind === 'ai_terms' ? `已學日數累積：睇 Terms 頁` : g.kind === 'daily_review' ? '每日收工回顧' : `${cur}`);
+      return `<div class="card goal-card" data-goal="${g.id}">
+        <span class="track-tag ${tag}">${tagLabel}${g.is_system ? ' · 系統' : ''}</span>
+        <strong style="font-size:16px;display:block">${esc(g.title)}</strong>
+        <p class="hint">${esc(g.description || '')}</p>
+        <div class="progress-wrap">
+          <div class="progress-bar"><i style="width:${barW}%"></i></div>
+          <div class="progress-label"><span>${esc(sub)}</span><span>${total > 0 ? pct + '%' : ''}</span></div>
+        </div>
+        ${g.kind === 'academy' ? '<button type="button" class="btn btn-secondary btn-sm" data-open-course style="margin-top:8px">睇 67 課 →</button>' : ''}
+        ${g.kind === 'ai_terms' ? '<button type="button" class="btn btn-secondary btn-sm" data-open-terms style="margin-top:8px">去 AI Terms →</button>' : ''}
+        ${g.kind === 'daily_review' ? '<button type="button" class="btn btn-secondary btn-sm" data-open-review style="margin-top:8px">去回顧 →</button>' : ''}
+      </div>`;
+    }
+    document.getElementById('goalsMain').innerHTML = tracks.main.map(card).join('') || '<p class="hint">未有主線目標</p>';
+    document.getElementById('goalsSide').innerHTML = tracks.side.map(card).join('') || '<p class="hint">未有支線目標</p>';
+    document.getElementById('goalsHabit').innerHTML = tracks.habit.map(card).join('') || '<p class="hint">未有習慣目標</p>';
+  }
+
+  function renderCourse() {
+    const g = goalByKind('academy');
+    const steps = g ? (state.stepsByGoal[g.id] || []) : [];
+    const done = steps.filter(s => s.done).length;
+    const total = steps.length || 67;
+    const pct = total ? Math.round(done / total * 100) : 0;
+    document.getElementById('coursePct').textContent = pct + '%';
+    document.getElementById('courseDoneLabel').textContent = `${done} / ${total} 課`;
+    document.getElementById('courseRing').setAttribute('stroke-dashoffset', String(CIRC * (1 - pct / 100)));
+    document.getElementById('lessonGrid').innerHTML = steps.map(s => `
+      <button type="button" class="lesson ${s.done ? 'done' : ''}" data-step="${s.id}" title="${esc(s.title)}">
+        <span>${s.step_index}</span><span class="ln">${s.done ? '✓' : '課'}</span>
+      </button>`).join('');
+  }
+
+  function renderMilestones() {
+    const g = goalByKind('academy');
+    const steps = g ? (state.stepsByGoal[g.id] || []) : [];
+    const checkpoints = [10, 20, 30, 40, 50, 60, 67];
+    const box = document.getElementById('milestoneList');
+    if (!steps.length) {
+      box.innerHTML = '<div class="empty"><div class="emoji">🏆</div><h3>未有里程碑</h3><p>完成 bootstrap 之後會出現 Academy checkpoints。</p></div>';
+      return;
+    }
+    box.innerHTML = checkpoints.map(n => {
+      const step = steps.find(s => s.step_index === n);
+      const achieved = step && step.done;
+      // achieved if all steps up to n done
+      const allUpTo = steps.filter(s => s.step_index <= n).every(s => s.done);
+      const ok = allUpTo;
+      return `<div class="milestone ${ok ? 'achieved' : ''}">
+        <div class="ms-icon">${ok ? '🏅' : '🎯'}</div>
+        <div class="ms-body">
+          <div class="ms-title">Academy 第 ${n} 課關卡</div>
+          <div class="ms-meta">${ok ? '已達成' : '未完成 · 完成第 ' + n + ' 課及之前全部'}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderTerms() {
+    const day = todayStr();
+    document.getElementById('termsDateLabel').textContent = formatDisplayDate(day);
+    const learnedSet = new Set(state.learned.map(l => l.term_id));
+    const todayLearned = state.dailyTerms.filter(t => learnedSet.has(t.id)).length;
+    document.getElementById('termsTodayBar').style.width = (todayLearned / 5 * 100) + '%';
+    document.getElementById('termsTodayLabel').textContent = `今日 ${todayLearned} / 5`;
+    document.getElementById('termsTotalLabel').textContent = `累積 ${state.learned.length}`;
+
+    document.getElementById('termsTodayPanel').innerHTML = state.dailyTerms.map(t => {
+      const ok = learnedSet.has(t.id);
+      return `<div class="term-card ${ok ? 'learned' : ''}" data-term="${esc(t.id)}">
+        <div class="term-head">
+          <div>
+            <div class="term-en">${esc(t.term)}</div>
+            <div class="term-zh">${esc(t.category || '')}</div>
+          </div>
+          ${ok
+            ? '<span class="badge" style="background:var(--green-soft);color:var(--green-dark)">已學 ✓</span>'
+            : `<button type="button" class="btn btn-primary btn-sm" data-learn="${esc(t.id)}">今日已學</button>`}
+        </div>
+        <div class="term-def">${esc(t.explanation)}</div>
+        <span class="term-tag">${esc(t.category || 'AI')}</span>
+      </div>`;
+    }).join('') || '<p class="hint">未有今日詞條</p>';
+
+    // learned library — need defs
+    renderLearnedPanel();
+  }
+
+  async function renderLearnedPanel() {
+    const panel = document.getElementById('termsLearnedPanel');
+    if (!state.learned.length) {
+      panel.innerHTML = '<div class="empty"><div class="emoji">📚</div><h3>未有已學詞</h3><p>喺「今日五條」撳已學就會累積喺度。</p></div>';
+      return;
+    }
+    const ids = state.learned.map(l => l.term_id);
+    const missing = ids.filter(id => !state.termDefs[id]);
+    if (missing.length) {
+      const { data } = await sb.from('pos_ai_terms').select('*').in('id', missing);
+      (data || []).forEach(d => { state.termDefs[d.id] = d; });
+    }
+    panel.innerHTML = state.learned.map(l => {
+      const t = state.termDefs[l.term_id] || { term: l.term_id, explanation: '' };
+      return `<div class="learned-item">
+        <div class="li-body">
+          <div class="li-en">${esc(t.term)}</div>
+          <div class="li-def">${esc(t.explanation)}</div>
+          <div class="li-meta">${esc(l.day || '')} · ${esc(formatTime(l.learned_at))}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderReview() {
+    const day = todayStr();
+    document.getElementById('reviewDateLabel').textContent = formatDisplayDate(day);
+    const today = state.reviews.find(r => r.day === day);
+    document.getElementById('reviewDone').value = today?.done_summary || '';
+    document.getElementById('reviewStuck').value = today?.stuck_summary || '';
+    document.getElementById('reviewTomorrow').value = today?.tomorrow_first || '';
+    state.reviewMood = today?.mood || null;
+    document.querySelectorAll('.mood-btn').forEach(b => b.classList.toggle('selected', b.dataset.mood === state.reviewMood));
+
+    const hist = document.getElementById('reviewHistory');
+    const others = state.reviews.filter(r => r.day !== day).slice(0, 7);
+    hist.innerHTML = others.length ? others.map(r => `
+      <div class="card">
+        <strong>${esc(formatDisplayDate(r.day))} ${esc(r.mood || '')}</strong>
+        <p class="hint" style="margin-top:6px">做咗：${esc(r.done_summary || '—')}</p>
+        <p class="hint">卡住：${esc(r.stuck_summary || '—')}</p>
+        <p class="hint">聽日：${esc(r.tomorrow_first || '—')}</p>
+      </div>`).join('') : '<p class="hint">未有舊回顧</p>';
+  }
+
+  function renderCalendar() {
+    if (!state.calMonth) {
+      const now = new Date();
+      state.calMonth = { y: now.getFullYear(), m: now.getMonth() };
+    }
+    const { y, m } = state.calMonth;
+    document.getElementById('calMonthLabel').textContent = `${y} 年 ${m + 1} 月`;
+    const dows = ['日', '一', '二', '三', '四', '五', '六'];
+    document.getElementById('calDows').innerHTML = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+    const hit = new Set(state.streaks.filter(s => s.hit).map(s => s.day));
+    const first = new Date(y, m, 1);
+    const startDow = first.getDay();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const today = todayStr();
+    let html = '';
+    for (let i = 0; i < startDow; i++) html += '<div class="cal-day empty"></div>';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const iso = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const classes = ['cal-day'];
+      if (iso === today) classes.push('today');
+      if (state.selectedDay === iso) classes.push('selected');
+      if (hit.has(iso)) {
+        const prev = addDays(iso, -1);
+        const next = addDays(iso, 1);
+        if (hit.has(prev) || hit.has(next)) classes.push('streak-run');
+        else classes.push('has-done');
+      } else if (iso < today) {
+        // break day if previous was hit
+        if (hit.has(addDays(iso, -1)) || hit.has(addDays(iso, 1))) classes.push('break-day');
+      }
+      html += `<button type="button" class="${classes.join(' ')}" data-day="${iso}">${d}${hit.has(iso) ? '<span class="dot"></span>' : ''}</button>`;
+    }
+    document.getElementById('calDays').innerHTML = html;
+    if (state.selectedDay) renderDayDetail(state.selectedDay);
+  }
+
+  function renderDayDetail(iso) {
+    state.selectedDay = iso;
+    document.getElementById('dayDetailTitle').textContent = formatDisplayDate(iso);
+    const items = state.completions.filter(c => c.day === iso);
+    const body = document.getElementById('dayDetailBody');
+    if (!items.length) {
+      body.innerHTML = '<p class="hint">呢日未有完成紀錄。</p>';
+      return;
+    }
+    body.innerHTML = items.map(c => `
+      <div class="timeline-item">
+        <div class="tl-time">${esc(formatTime(c.occurred_at))}</div>
+        <div class="tl-body">${esc(c.title)} <span class="badge">${esc(c.kind)}</span></div>
+      </div>`).join('');
+  }
+
+  function renderSettings() {
+    document.getElementById('syncIdDisplay').textContent = uid() || '—';
+    setSyncBadge(state.ready ? 'synced' : 'offline', state.ready ? '已連線 · 真表後端' : '未連線');
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    document.getElementById('pwaInstallHint').classList.toggle('show', !isStandalone);
   }
 
   function renderAll() {
-    $('#streakNum').textContent = String(calcStreak());
-    $('#todayDateLabel').textContent = formatDisplayDate(todayStr());
     renderToday();
     renderGoals();
     renderCourse();
     renderMilestones();
-    renderInbox();
-    renderReview();
-    renderCalendar();
-    renderTerms();
+    renderSettings();
+    document.getElementById('streakNum').textContent = currentStreak();
   }
 
-  function renderToday() {
-    const open = todayOpenTasks();
-    const done = todayDoneTasks();
-    $('#todayDoneCount').textContent = String(done.length);
-    $('#todayLeftCount').textContent = String(open.length);
-    const warn = $('#todayLimitWarn');
-    const atLimit = open.length >= MAX_TODAY;
-    warn.hidden = !atLimit;
-    $('#btnAddTask').disabled = atLimit;
-    $('#btnAddTask').style.opacity = atLimit ? '.5' : '1';
-
-    const list = $('#todayTaskList');
-    const items = open.concat(done);
-    if (!items.length) {
-      list.innerHTML = '<div class="empty"><div class="emoji">☀️</div><h3>今日仲未有任務</h3><p>每日最多 3 件——揀最重要嘅先。</p><button class="btn btn-primary" type="button" id="emptyAddTask">＋ 加第一件</button></div>';
-      const b = $('#emptyAddTask');
-      if (b) b.onclick = function () { openTaskModal(); };
-      return;
-    }
-    list.innerHTML = items.map(function (task) {
-      return '<div class="task ' + (task.done ? 'done' : '') + ' ' + (task.sample ? 'sample' : '') + '" data-id="' + esc(task.id) + '">' +
-        '<button class="check" type="button" data-act="toggle" aria-label="完成">' + (task.done ? '✓' : '') + '</button>' +
-        '<div class="task-body"><div class="task-title">' + (task.emoji ? esc(task.emoji) + ' ' : '') + esc(task.title) + '</div>' +
-        '<div class="task-meta">' + prioLabel(task.priority) +
-        (task.sample ? '<span class="badge sample-tag">示範</span>' : '') +
-        (task.rolled ? '<span class="badge">由舊日滾入</span>' : '') +
-        (task.done && task.doneAt ? '<span class="badge">' + esc(timeStr(task.doneAt)) + '</span>' : '') +
-        '</div></div>' +
-        '<div class="task-actions">' +
-        '<button class="icon-btn" type="button" data-act="edit" title="改">✏️</button>' +
-        '<button class="icon-btn" type="button" data-act="del" title="刪">🗑️</button>' +
-        '</div></div>';
-    }).join('');
-
-    list.onclick = function (e) {
-      const btn = e.target.closest('[data-act]');
-      const row = e.target.closest('.task');
-      if (!btn || !row) return;
-      const id = row.getAttribute('data-id');
-      const act = btn.getAttribute('data-act');
-      if (act === 'toggle') toggleTask(id);
-      if (act === 'edit') openTaskModal(id);
-      if (act === 'del') deleteTask(id);
-    };
-  }
-
-  function renderInbox() {
-    const box = $('#inboxList');
-    const items = state.inbox || [];
-    $('#inboxCount').textContent = items.length ? items.length + ' 則' : '';
-    if (!items.length) {
-      box.innerHTML = '<div class="empty" style="padding:16px"><p style="margin:0">速記會出現喺度，之後再分類。</p></div>';
-      return;
-    }
-    box.innerHTML = items.map(function (it) {
-      return '<div class="inbox-item" data-id="' + esc(it.id) + '"><p>' + esc(it.text) +
-        (it.sample ? ' <span class="badge sample-tag">示範</span>' : '') + '</p>' +
-        '<button class="btn btn-sm btn-secondary" type="button" data-act="to-today">→今日</button>' +
-        '<button class="icon-btn" type="button" data-act="del-inbox">🗑️</button></div>';
-    }).join('');
-    box.onclick = function (e) {
-      const row = e.target.closest('.inbox-item');
-      const btn = e.target.closest('[data-act]');
-      if (!row || !btn) return;
-      const id = row.getAttribute('data-id');
-      if (btn.getAttribute('data-act') === 'del-inbox') {
-        state.inbox = state.inbox.filter(function (x) { return x.id !== id; });
-        save(); renderInbox(); toast('已刪速記');
-      }
-      if (btn.getAttribute('data-act') === 'to-today') promoteInboxToToday(id);
-    };
-  }
-
-  function renderGoals() {
-    const main = state.goals.filter(function (g) { return g.track === 'main'; });
-    const side = state.goals.filter(function (g) { return g.track === 'side'; });
-    function paint(arr) {
-      if (!arr.length) return '<div class="empty"><p>未有目標</p></div>';
-      return arr.map(function (g) {
-        const pct = g.target ? Math.min(100, Math.round((g.progress / g.target) * 100)) : 0;
-        return '<div class="card goal-card" data-id="' + esc(g.id) + '">' +
-          '<span class="track-tag ' + (g.track === 'main' ? 'track-main' : 'track-side') + '">' +
-          (g.track === 'main' ? '主線' : '支線') + '</span> ' +
-          (g.sample ? '<span class="badge sample-tag">示範</span>' : '') +
-          '<div style="font-weight:900;font-size:15px;margin:4px 0">' + esc(g.title) + '</div>' +
-          (g.note ? '<div class="hint">' + esc(g.note) + '</div>' : '') +
-          '<div class="progress-wrap"><div class="progress-bar"><i style="width:' + pct + '%"></i></div>' +
-          '<div class="progress-label"><span>' + esc(g.progress) + ' / ' + esc(g.target) + ' ' + esc(g.unit || '') +
-          '</span><span>' + pct + '%</span></div></div>' +
-          '<div style="display:flex;gap:6px;margin-top:10px">' +
-          '<button class="btn btn-sm btn-secondary" type="button" data-act="goal-minus">−</button>' +
-          '<button class="btn btn-sm btn-primary" type="button" data-act="goal-plus">＋進度</button>' +
-          '<button class="btn btn-sm btn-ghost" type="button" data-act="goal-edit">改</button>' +
-          '<button class="btn btn-sm btn-ghost" type="button" data-act="goal-del">刪</button></div></div>';
-      }).join('');
-    }
-    $('#goalsMain').innerHTML = paint(main);
-    $('#goalsSide').innerHTML = paint(side);
-    function handler(e) {
-      const card = e.target.closest('.goal-card');
-      const btn = e.target.closest('[data-act]');
-      if (!card || !btn) return;
-      const id = card.getAttribute('data-id');
-      const g = state.goals.find(function (x) { return x.id === id; });
-      if (!g) return;
-      const act = btn.getAttribute('data-act');
-      if (act === 'goal-plus') {
-        g.progress = Math.min(g.target, Number(g.progress) + 1);
-        markProgressToday(); save(); checkAutoMilestones(); renderAll(); celebrate(); toast('進度 +1');
-      }
-      if (act === 'goal-minus') {
-        g.progress = Math.max(0, Number(g.progress) - 1);
-        save(); renderGoals();
-      }
-      if (act === 'goal-edit') openGoalModal(id);
-      if (act === 'goal-del') {
-        if (confirm('刪呢個目標？')) {
-          state.goals = state.goals.filter(function (x) { return x.id !== id; });
-          save(); renderGoals(); toast('已刪目標');
-        }
-      }
-    }
-    $('#goalsMain').onclick = handler;
-    $('#goalsSide').onclick = handler;
-  }
-
-  function renderCourse() {
-    const done = state.lessons.filter(function (l) { return l.done; }).length;
-    const pct = Math.round((done / LESSON_COUNT) * 100);
-    $('#coursePct').textContent = pct + '%';
-    $('#courseDoneLabel').textContent = done + ' / ' + LESSON_COUNT + ' 課';
-    const circ = 2 * Math.PI * 36;
-    $('#courseRing').setAttribute('stroke-dashoffset', String(circ * (1 - done / LESSON_COUNT)));
-    $('#lessonGrid').innerHTML = state.lessons.map(function (l) {
-      return '<button type="button" class="lesson ' + (l.done ? 'done' : '') + '" data-n="' + l.n + '" title="' + esc(l.title) + '">' +
-        '<span>' + l.n + '</span><span class="ln">' + (l.done ? '✓' : '') + '</span></button>';
-    }).join('');
-    $('#lessonGrid').onclick = function (e) {
-      const b = e.target.closest('.lesson');
-      if (!b) return;
-      const n = Number(b.getAttribute('data-n'));
-      const lesson = state.lessons.find(function (x) { return x.n === n; });
-      if (!lesson) return;
-      lesson.done = !lesson.done;
-      lesson.doneAt = lesson.done ? now().toISOString() : null;
-      if (lesson.done) {
-        markProgressToday(); celebrate();
-        toast('完成：第 ' + n + ' 課 · ' + lesson.title);
-      } else {
-        toast('取消：第 ' + n + ' 課');
-      }
-      recomputeActivity(); checkAutoMilestones(); save(); renderAll();
-    };
-  }
-
-  function renderMilestones() {
-    const list = $('#milestoneList');
-    const sorted = state.milestones.slice().sort(function (a, b) {
-      if (a.achieved !== b.achieved) return a.achieved ? 1 : -1;
-      return String(a.due || '').localeCompare(String(b.due || ''));
-    });
-    if (!sorted.length) {
-      list.innerHTML = '<div class="empty"><div class="emoji">🏆</div><h3>未有里程碑</h3><p>將大目標拆成有截止日期嘅小勝仗。</p></div>';
-      return;
-    }
-    const t = todayStr();
-    list.innerHTML = sorted.map(function (m) {
-      const overdue = !m.achieved && m.due && m.due < t;
-      return '<div class="milestone ' + (m.achieved ? 'achieved' : '') + '" data-id="' + esc(m.id) + '">' +
-        '<div class="ms-icon">' + esc(m.emoji || '🏁') + '</div><div class="ms-body">' +
-        '<div class="ms-title">' + esc(m.title) + ' ' + (m.sample ? '<span class="badge sample-tag">示範</span>' : '') + '</div>' +
-        '<div class="ms-meta">' + (m.achieved
-          ? ('已達成 · ' + (m.achievedAt ? formatDisplayDate(todayStr(new Date(m.achievedAt))) : ''))
-          : ('<span class="ms-due ' + (overdue ? 'overdue' : '') + '">到期 ' + esc(m.due || '未定') + (overdue ? ' · 過期' : '') + '</span>')) +
-        '</div><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">' +
-        (m.achieved
-          ? '<button class="btn btn-sm btn-ghost" type="button" data-act="ms-undo">取消達成</button>'
-          : '<button class="btn btn-sm btn-primary" type="button" data-act="ms-done">達成！</button>') +
-        '<button class="btn btn-sm btn-ghost" type="button" data-act="ms-edit">改</button>' +
-        '<button class="btn btn-sm btn-ghost" type="button" data-act="ms-del">刪</button></div></div></div>';
-    }).join('');
-    list.onclick = function (e) {
-      const row = e.target.closest('.milestone');
-      const btn = e.target.closest('[data-act]');
-      if (!row || !btn) return;
-      const id = row.getAttribute('data-id');
-      const m = state.milestones.find(function (x) { return x.id === id; });
-      if (!m) return;
-      const act = btn.getAttribute('data-act');
-      if (act === 'ms-done') {
-        m.achieved = true; m.achievedAt = now().toISOString();
-        markProgressToday(); celebrate(); toast('🏆 達成里程碑！'); save(); renderAll();
-      }
-      if (act === 'ms-undo') { m.achieved = false; m.achievedAt = null; save(); renderMilestones(); }
-      if (act === 'ms-edit') openMilestoneModal(id);
-      if (act === 'ms-del') {
-        if (confirm('刪呢個里程碑？')) {
-          state.milestones = state.milestones.filter(function (x) { return x.id !== id; });
-          save(); renderMilestones(); toast('已刪');
-        }
-      }
-    };
-  }
-
-  let reviewMood = '🙂';
-
-  let termsTab = 'today';
-
-  function renderTerms() {
-    ensureAiTermsState();
-    const t = todayStr();
-    const daily = getDailyTerms(t);
-    const learnedMap = state.aiTerms.learned;
-    const todayLearned = daily.filter(function (term) { return learnedMap[term.id]; }).length;
-    const totalLearned = Object.keys(learnedMap).length;
-    const dateEl = $('#termsDateLabel');
-    if (dateEl) dateEl.textContent = formatDisplayDate(t) + ' · 按日固定五條，未學過優先';
-    const bar = $('#termsTodayBar');
-    if (bar) bar.style.width = Math.round((todayLearned / 5) * 100) + '%';
-    const tl = $('#termsTodayLabel');
-    if (tl) tl.textContent = '今日 ' + todayLearned + ' / 5';
-    const tot = $('#termsTotalLabel');
-    if (tot) tot.textContent = '累積 ' + totalLearned + ' 個';
-
-    $all('.terms-tab').forEach(function (b) {
-      b.classList.toggle('active', b.getAttribute('data-terms-tab') === termsTab);
-    });
-    const todayPanel = $('#termsTodayPanel');
-    const learnedPanel = $('#termsLearnedPanel');
-    if (!todayPanel || !learnedPanel) return;
-    todayPanel.hidden = termsTab !== 'today';
-    learnedPanel.hidden = termsTab !== 'learned';
-
-    if (termsTab === 'today') {
-      todayPanel.innerHTML = daily.map(function (term) {
-        const learned = !!learnedMap[term.id];
-        return '<div class="term-card ' + (learned ? 'learned' : '') + '" data-term-id="' + esc(term.id) + '">' +
-          '<div class="term-head"><div><div class="term-en">' + esc(term.en) + '</div>' +
-          '<div class="term-zh">' + esc(term.zh) + '</div></div>' +
-          (learned
-            ? '<button class="btn btn-sm btn-secondary" type="button" data-act="unlearn">取消</button>'
-            : '<button class="btn btn-sm btn-primary" type="button" data-act="learn">今日已學</button>') +
-          '</div>' +
-          '<div class="term-def">' + esc(term.def) + '</div>' +
-          '<span class="term-tag">' + esc(term.tag) + (learned ? ' · 已學' : '') + '</span></div>';
-      }).join('');
-      todayPanel.onclick = function (e) {
-        const card = e.target.closest('.term-card');
-        const btn = e.target.closest('[data-act]');
-        if (!card || !btn) return;
-        const id = card.getAttribute('data-term-id');
-        const act = btn.getAttribute('data-act');
-        ensureAiTermsState();
-        if (act === 'learn') {
-          state.aiTerms.learned[id] = { learnedAt: now().toISOString(), day: todayStr(), sample: false };
-          markProgressToday();
-          checkAutoMilestones();
-          save(); renderAll();
-          toast('記低咗 ✓');
-          if (Object.keys(state.aiTerms.learned).length % 5 === 0) celebrate();
-          else playSfx('success');
-        } else if (act === 'unlearn') {
-          delete state.aiTerms.learned[id];
-          recomputeActivity();
-          save(); renderAll();
-          toast('已取消');
-        }
-      };
+  /* ---------- actions ---------- */
+  async function toggleTask(id) {
+    const t = state.tasks.find(x => x.id === id);
+    if (!t) return;
+    if (t.status === 'done') {
+      // allow uncomplete — but trigger only fires on ->done; manually clear is ok
+      const { error } = await sb.from('pos_tasks').update({ status: 'open', completed_at: null }).eq('id', id);
+      if (error) return toast('更新失敗：' + error.message);
+      t.status = 'open'; t.completed_at = null;
+      sfxClick();
     } else {
-      const ids = Object.keys(learnedMap);
-      if (!ids.length) {
-        learnedPanel.innerHTML = '<div class="empty"><div class="emoji">🧠</div><h3>仲未有已學詞彙</h3><p>去「今日五條」撳「今日已學」就會累積喺度。</p></div>';
-      } else {
-        const byDate = ids.map(function (id) {
-          const term = AI_TERMS.find(function (x) { return x.id === id; });
-          const rec = learnedMap[id];
-          return { term: term, rec: rec, id: id };
-        }).filter(function (x) { return x.term; })
-          .sort(function (a, b) {
-            return String((b.rec && b.rec.learnedAt) || '').localeCompare(String((a.rec && a.rec.learnedAt) || ''));
-          });
-        learnedPanel.innerHTML = '<p class="hint" style="margin-bottom:10px">合共 ' + byDate.length + ' 個 · 最新喺上</p>' +
-          byDate.map(function (row) {
-            const day = (row.rec && row.rec.day) || (row.rec && row.rec.learnedAt ? todayStr(new Date(row.rec.learnedAt)) : '');
-            return '<div class="learned-item" data-term-id="' + esc(row.id) + '">' +
-              '<div class="li-body"><div class="li-en">' + esc(row.term.en) + ' · ' + esc(row.term.zh) + '</div>' +
-              '<div class="li-def">' + esc(row.term.def) + '</div>' +
-              '<div class="li-meta">' + esc(row.term.tag) + (day ? ' · ' + formatDisplayDate(day) : '') +
-              (row.rec && row.rec.sample ? ' · 示範' : '') + '</div></div>' +
-              '<button class="icon-btn" type="button" data-act="unlearn" title="移除">🗑️</button></div>';
-          }).join('');
-        learnedPanel.onclick = function (e) {
-          const btn = e.target.closest('[data-act="unlearn"]');
-          const row = e.target.closest('.learned-item');
-          if (!btn || !row) return;
-          const id = row.getAttribute('data-term-id');
-          delete state.aiTerms.learned[id];
-          recomputeActivity();
-          save(); renderAll();
-          toast('已移除');
-        };
-      }
+      const now = new Date().toISOString();
+      const { error } = await sb.from('pos_tasks').update({ status: 'done', completed_at: now }).eq('id', id);
+      if (error) return toast('更新失敗：' + error.message);
+      t.status = 'done'; t.completed_at = now;
+      sfxDone(); celebrate();
+      // refresh streaks/completions/steps
+      await refreshAfterTaskDone();
     }
+    renderToday();
+    renderCourse();
+    renderGoals();
   }
 
-  function renderReview() {
-    const t = todayStr();
-    $('#reviewDateLabel').textContent = formatDisplayDate(t) + '（香港時間）';
-    const r = (state.reviews && state.reviews[t]) || {};
-    $('#reviewDone').value = r.done || '';
-    $('#reviewStuck').value = r.stuck || '';
-    $('#reviewTomorrow').value = r.tomorrow || '';
-    reviewMood = r.mood || '🙂';
-    $all('#moodPicker .mood-btn').forEach(function (b) {
-      b.classList.toggle('selected', b.getAttribute('data-mood') === reviewMood);
+  async function refreshAfterTaskDone() {
+    const uidv = uid();
+    const [streaksRes, compsRes, goalsRes, stepsRes] = await Promise.all([
+      sb.from('pos_streaks').select('*').eq('user_id', uidv).order('day', { ascending: false }).limit(400),
+      sb.from('pos_completions').select('*').eq('user_id', uidv).order('occurred_at', { ascending: false }).limit(500),
+      sb.from('pos_goals').select('*').eq('user_id', uidv).eq('archived', false).order('sort_order'),
+      sb.from('pos_goal_steps').select('*').eq('user_id', uidv).order('step_index')
+    ]);
+    state.streaks = streaksRes.data || [];
+    state.completions = compsRes.data || [];
+    state.goals = goalsRes.data || [];
+    state.stepsByGoal = {};
+    (stepsRes.data || []).forEach(s => {
+      (state.stepsByGoal[s.goal_id] || (state.stepsByGoal[s.goal_id] = [])).push(s);
     });
-    const hist = Object.keys(state.reviews || {}).sort().reverse().slice(0, 7);
-    const box = $('#reviewHistory');
-    if (!hist.length) {
-      box.innerHTML = '<div class="empty"><p>未有歷史回顧</p></div>';
-      return;
-    }
-    box.innerHTML = hist.map(function (d) {
-      const x = state.reviews[d];
-      return '<div class="card"><strong>' + esc(formatDisplayDate(d)) + ' ' + esc(x.mood || '') + '</strong>' +
-        '<p class="hint" style="margin-top:6px">完成：' + esc(x.done || '—') + '</p>' +
-        '<p class="hint">卡住：' + esc(x.stuck || '—') + '</p>' +
-        '<p class="hint">聽日第一件：' + esc(x.tomorrow || '—') + '</p></div>';
-    }).join('');
+    document.getElementById('streakNum').textContent = currentStreak();
   }
 
-  let calCursor = null;
-  let selectedDay = null;
+  async function markDefaultTaskDone(actionPage) {
+    const t = state.tasks.find(x => x.action_page === actionPage && x.status === 'open');
+    if (!t) return;
+    await toggleTask(t.id);
+  }
 
-  function renderCalendar() {
-    if (!calCursor) {
-      const t = todayStr();
-      const parts = t.split('-').map(Number);
-      calCursor = { y: parts[0], m: parts[1] };
+  async function learnTerm(termId) {
+    const day = todayStr();
+    const { error } = await sb.from('pos_ai_term_progress').upsert({
+      user_id: uid(), term_id: termId, day, learned_at: new Date().toISOString()
+    }, { onConflict: 'user_id,term_id' });
+    if (error) return toast('儲存失敗：' + error.message);
+    if (!state.learned.some(l => l.term_id === termId)) {
+      state.learned.unshift({ user_id: uid(), term_id: termId, day, learned_at: new Date().toISOString() });
     }
-    selectedDay = selectedDay || todayStr();
-    const y = calCursor.y, m = calCursor.m;
-    $('#calMonthLabel').textContent = y + '年' + m + '月';
-    const dows = ['一', '二', '三', '四', '五', '六', '日'];
-    $('#calDows').innerHTML = dows.map(function (d) { return '<div class="cal-dow">' + d + '</div>'; }).join('');
-
-    const first = new Date(Date.UTC(y, m - 1, 1));
-    let startDow = first.getUTCDay();
-    startDow = startDow === 0 ? 6 : startDow - 1;
-    const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
-    const progress = daysWithProgress();
-    const t = todayStr();
-
-    const breakDays = new Set();
-    for (let d = 1; d <= daysInMonth; d++) {
-      const ymd = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-      if (ymd > t) continue;
-      if (progress.has(ymd)) continue;
-      const prev = addDaysYmd(ymd, -1);
-      const next = addDaysYmd(ymd, 1);
-      if (progress.has(prev) && (progress.has(next) || ymd < t)) breakDays.add(ymd);
+    sfxDone();
+    renderTerms();
+    // if all 5 learned → mark task done
+    const learnedSet = new Set(state.learned.map(l => l.term_id));
+    if (state.dailyTerms.every(t => learnedSet.has(t.id))) {
+      await markDefaultTaskDone('ai_terms');
+      toast('今日五條學完！任務已勾');
+    } else {
+      toast('已標記今日已學');
     }
+  }
 
-    let html = '';
-    for (let i = 0; i < startDow; i++) html += '<div class="cal-day empty"></div>';
-    for (let d = 1; d <= daysInMonth; d++) {
-      const ymd = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-      const classes = ['cal-day'];
-      if (ymd === t) classes.push('today');
-      if (ymd === selectedDay) classes.push('selected');
-      if (progress.has(ymd)) {
-        const prev = addDaysYmd(ymd, -1);
-        classes.push(progress.has(prev) ? 'streak-run' : 'has-done');
-      } else if (breakDays.has(ymd)) {
-        classes.push('break-day');
-      }
-      html += '<button type="button" class="' + classes.join(' ') + '" data-day="' + ymd + '"><span>' + d + '</span>' +
-        (progress.has(ymd) ? '<span class="dot"></span>' : '') + '</button>';
-    }
-    $('#calDays').innerHTML = html;
-    $('#calDays').onclick = function (e) {
-      const b = e.target.closest('[data-day]');
-      if (!b) return;
-      selectedDay = b.getAttribute('data-day');
-      renderCalendar();
-      renderDayDetail(selectedDay);
+  async function saveReview() {
+    const day = todayStr();
+    const row = {
+      user_id: uid(),
+      day,
+      done_summary: document.getElementById('reviewDone').value.trim(),
+      stuck_summary: document.getElementById('reviewStuck').value.trim(),
+      tomorrow_first: document.getElementById('reviewTomorrow').value.trim(),
+      mood: state.reviewMood,
+      updated_at: new Date().toISOString()
     };
-    renderDayDetail(selectedDay);
+    const { error } = await sb.from('pos_reviews').upsert(row, { onConflict: 'user_id,day' });
+    if (error) return toast('儲存失敗：' + error.message);
+    const idx = state.reviews.findIndex(r => r.day === day);
+    if (idx >= 0) state.reviews[idx] = { ...state.reviews[idx], ...row };
+    else state.reviews.unshift(row);
+    sfxDone();
+    await markDefaultTaskDone('daily_review');
+    toast('回顧已儲存');
+    renderReview();
   }
 
-  function renderDayDetail(ymd) {
-    $('#dayDetailTitle').textContent = formatDisplayDate(ymd);
-    const completed = state.tasks.filter(function (task) {
-      if (!task.done) return false;
-      if (task.doneAt) return todayStr(new Date(task.doneAt)) === ymd;
-      return task.date === ymd;
-    }).sort(function (a, b) { return String(a.doneAt || '').localeCompare(String(b.doneAt || '')); });
-    const lessons = state.lessons.filter(function (l) {
-      return l.done && l.doneAt && todayStr(new Date(l.doneAt)) === ymd;
-    });
-    const review = state.reviews && state.reviews[ymd];
-    ensureAiTermsState();
-    const dayTerms = Object.keys(state.aiTerms.learned).filter(function (id) {
-      var rec = state.aiTerms.learned[id];
-      if (!rec) return false;
-      if (rec.day) return rec.day === ymd;
-      return rec.learnedAt && todayStr(new Date(rec.learnedAt)) === ymd;
-    }).map(function (id) {
-      return { id: id, term: AI_TERMS.find(function (x) { return x.id === id; }), rec: state.aiTerms.learned[id] };
-    }).filter(function (x) { return x.term; });
-    if (!completed.length && !lessons.length && !review && !dayTerms.length) {
-      $('#dayDetailBody').innerHTML = '<p class="hint">呢日未有完成紀錄。</p>';
-      return;
-    }
-    let html = '';
-    completed.forEach(function (task) {
-      html += '<div class="timeline-item"><div class="tl-time">' + (task.doneAt ? esc(timeStr(task.doneAt)) : '—') +
-        '</div><div class="tl-body">' + (task.emoji ? esc(task.emoji) + ' ' : '') + esc(task.title) + '</div></div>';
-    });
-    lessons.forEach(function (l) {
-      html += '<div class="timeline-item"><div class="tl-time">' + esc(timeStr(l.doneAt)) +
-        '</div><div class="tl-body">📚 第 ' + l.n + ' 課 · ' + esc(l.title) + '</div></div>';
-    });
-    dayTerms.forEach(function (row) {
-      var tm = row.rec && row.rec.learnedAt ? esc(timeStr(row.rec.learnedAt)) : '詞彙';
-      html += '<div class="timeline-item"><div class="tl-time">' + tm +
-        '</div><div class="tl-body">🧠 已學 · ' + esc(row.term.en) + '（' + esc(row.term.zh) + '）</div></div>';
-    });
-    if (review) {
-      html += '<div class="timeline-item"><div class="tl-time">回顧</div><div class="tl-body">' +
-        esc(review.mood || '') + ' 完成：' + esc(review.done || '—') + '<br>卡住：' + esc(review.stuck || '—') +
-        '<br>聽日：' + esc(review.tomorrow || '—') + '</div></div>';
-    }
-    $('#dayDetailBody').innerHTML = html;
+  async function toggleStep(stepId) {
+    const g = goalByKind('academy');
+    if (!g) return;
+    const steps = state.stepsByGoal[g.id] || [];
+    const step = steps.find(s => s.id === stepId);
+    if (!step) return;
+    const done = !step.done;
+    const { error } = await sb.from('pos_goal_steps').update({
+      done, done_at: done ? new Date().toISOString() : null
+    }).eq('id', stepId);
+    if (error) return toast('更新失敗：' + error.message);
+    step.done = done;
+    step.done_at = done ? new Date().toISOString() : null;
+    // progress recalc via trigger
+    const { data: goals } = await sb.from('pos_goals').select('*').eq('user_id', uid()).eq('archived', false).order('sort_order');
+    state.goals = goals || [];
+    if (done) { sfxDone(); celebrate(); } else sfxClick();
+    renderCourse();
+    renderGoals();
+    renderMilestones();
   }
 
-  function toggleTask(id) {
-    const task = state.tasks.find(function (x) { return x.id === id; });
-    if (!task) return;
-    task.done = !task.done;
-    task.doneAt = task.done ? now().toISOString() : null;
-    if (task.done) {
-      markProgressToday(); celebrate(); toast('搞掂！' + (task.emoji || '✅'));
-    }
-    checkAutoMilestones(); save(); renderAll();
-  }
-
-  function deleteTask(id) {
-    if (!confirm('刪呢件任務？')) return;
-    state.tasks = state.tasks.filter(function (x) { return x.id !== id; });
-    save(); renderToday(); toast('已刪');
-  }
-
-  function promoteInboxToToday(id) {
-    if (todayOpenTasks().length >= MAX_TODAY) { toast('今日任務已滿 3 件'); return; }
-    const it = state.inbox.find(function (x) { return x.id === id; });
-    if (!it) return;
-    state.tasks.push({
-      id: uid(), title: it.text.replace(/^【示範】/, ''), emoji: '💡',
-      priority: 'mid', date: todayStr(), done: false, doneAt: null,
-      goalId: null, sample: false, createdAt: now().toISOString()
-    });
-    state.inbox = state.inbox.filter(function (x) { return x.id !== id; });
-    save(); renderAll(); toast('已變今日任務');
-  }
-
+  /* ---------- task detail modal ---------- */
   function openModal(html) {
-    $('#modal').innerHTML = html;
-    $('#modalBackdrop').classList.add('open');
+    document.getElementById('modal').innerHTML = html;
+    document.getElementById('modalBackdrop').classList.add('open');
   }
   function closeModal() {
-    $('#modalBackdrop').classList.remove('open');
-    $('#modal').innerHTML = '';
+    document.getElementById('modalBackdrop').classList.remove('open');
+    document.getElementById('modal').innerHTML = '';
   }
-  $('#modalBackdrop').addEventListener('click', function (e) {
-    if (e.target === $('#modalBackdrop')) closeModal();
-  });
 
-  function openTaskModal(id) {
-    const task = id ? state.tasks.find(function (x) { return x.id === id; }) : null;
-    if (!task && todayOpenTasks().length >= MAX_TODAY) { toast('今日最多 3 件任務'); return; }
-    openModal(
-      '<h2>' + (task ? '改任務' : '加今日任務') + '</h2>' +
-      '<div class="field"><label>任務（最多今日 3 件未完成）</label>' +
-      '<input id="fTitle" value="' + esc(task ? task.title : '') + '" placeholder="今日最重要嘅一件…" /></div>' +
-      '<div class="field-row"><div class="field"><label>Emoji</label>' +
-      '<input id="fEmoji" value="' + esc(task ? (task.emoji || '') : '🎯') + '" maxlength="4" /></div>' +
-      '<div class="field"><label>優先</label><select id="fPrio">' +
-      '<option value="high"' + (task && task.priority === 'high' ? ' selected' : '') + '>高</option>' +
-      '<option value="mid"' + (!task || task.priority === 'mid' ? ' selected' : '') + '>中</option>' +
-      '<option value="low"' + (task && task.priority === 'low' ? ' selected' : '') + '>低</option>' +
-      '</select></div></div>' +
-      '<div class="modal-actions"><button class="btn btn-secondary" type="button" id="mCancel">取消</button>' +
-      '<button class="btn btn-primary" type="button" id="mSave">儲存</button></div>'
-    );
-    $('#mCancel').onclick = closeModal;
-    $('#mSave').onclick = function () {
-      const title = $('#fTitle').value.trim();
-      if (!title) { toast('寫低任務內容先'); return; }
-      if (task) {
-        task.title = title; task.emoji = $('#fEmoji').value.trim();
-        task.priority = $('#fPrio').value; task.sample = false;
-      } else {
-        state.tasks.push({
-          id: uid(), title: title, emoji: $('#fEmoji').value.trim() || '🎯',
-          priority: $('#fPrio').value, date: todayStr(), done: false, doneAt: null,
-          goalId: null, sample: false, createdAt: now().toISOString()
-        });
+  async function openTaskDetail(taskId) {
+    const t = state.tasks.find(x => x.id === taskId);
+    if (!t) return;
+    // refresh assets
+    const { data: assets } = await sb.from('pos_task_assets').select('*').eq('task_id', taskId).order('created_at');
+    state.assetsByTask[taskId] = assets || [];
+    const assetHtml = (assets || []).map(a => {
+      if (a.kind === 'image') {
+        return `<div class="asset-row" data-asset="${a.id}">
+          <img class="asset-thumb" src="${esc(a.url)}" alt="" />
+          <a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.label || '圖片')}</a>
+          <button type="button" class="icon-btn" data-del-asset="${a.id}">🗑️</button>
+        </div>`;
       }
-      save(); closeModal(); renderAll(); toast('已儲存');
+      return `<div class="asset-row" data-asset="${a.id}">
+        <span>🔗</span>
+        <a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.label || a.url)}</a>
+        <button type="button" class="icon-btn" data-del-asset="${a.id}">🗑️</button>
+      </div>`;
+    }).join('') || '<p class="hint">未有附件</p>';
+
+    openModal(`
+      <h2>任務詳情</h2>
+      <div class="field"><label>標題</label><input id="tdTitle" value="${esc(t.title)}" /></div>
+      <div class="field"><label>說明</label><textarea id="tdDetail">${esc(t.detail || '')}</textarea></div>
+      <div class="section-title"><span>連結 / 圖片</span></div>
+      <div id="tdAssets">${assetHtml}</div>
+      <div class="field"><label>加連結</label>
+        <div class="field-row">
+          <input id="tdLinkUrl" placeholder="https://…" />
+          <input id="tdLinkLabel" placeholder="名稱（可選）" />
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm btn-block" id="tdAddLink" style="margin-top:8px">＋ 加連結</button>
+      </div>
+      <div class="field"><label>上傳圖片</label>
+        <input id="tdImage" type="file" accept="image/*" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="tdClose">關閉</button>
+        <button type="button" class="btn btn-primary" id="tdSave">儲存</button>
+      </div>
+    `);
+
+    document.getElementById('tdClose').onclick = () => { sfxClick(); closeModal(); };
+    document.getElementById('tdSave').onclick = async () => {
+      const title = document.getElementById('tdTitle').value.trim();
+      const detail = document.getElementById('tdDetail').value.trim();
+      const { error } = await sb.from('pos_tasks').update({ title, detail }).eq('id', taskId);
+      if (error) return toast(error.message);
+      t.title = title; t.detail = detail;
+      sfxDone(); closeModal(); renderToday(); toast('已儲存');
     };
-    setTimeout(function () { $('#fTitle').focus(); }, 50);
+    document.getElementById('tdAddLink').onclick = async () => {
+      const url = document.getElementById('tdLinkUrl').value.trim();
+      const label = document.getElementById('tdLinkLabel').value.trim();
+      if (!url) return toast('請填連結');
+      const { error } = await sb.from('pos_task_assets').insert({
+        user_id: uid(), task_id: taskId, kind: 'link', url, label: label || null
+      });
+      if (error) return toast(error.message);
+      sfxDone();
+      openTaskDetail(taskId);
+    };
+    document.getElementById('tdImage').onchange = async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const path = `${uid()}/${taskId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const { error: upErr } = await sb.storage.from('pos-task-assets').upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) return toast('上傳失敗：' + upErr.message);
+      const { data: pub } = sb.storage.from('pos-task-assets').getPublicUrl(path);
+      // bucket may be private — use signed URL
+      let url = pub && pub.publicUrl;
+      const { data: signed } = await sb.storage.from('pos-task-assets').createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signed && signed.signedUrl) url = signed.signedUrl;
+      const { error } = await sb.from('pos_task_assets').insert({
+        user_id: uid(), task_id: taskId, kind: 'image', url, label: file.name
+      });
+      if (error) return toast(error.message);
+      sfxDone();
+      openTaskDetail(taskId);
+    };
+    document.getElementById('tdAssets').onclick = async (ev) => {
+      const btn = ev.target.closest('[data-del-asset]');
+      if (!btn) return;
+      const id = btn.getAttribute('data-del-asset');
+      await sb.from('pos_task_assets').delete().eq('id', id);
+      sfxClick();
+      openTaskDetail(taskId);
+    };
   }
 
-  function openGoalModal(id) {
-    const g = id ? state.goals.find(function (x) { return x.id === id; }) : null;
-    openModal(
-      '<h2>' + (g ? '改目標' : '加目標') + '</h2>' +
-      '<div class="field"><label>名稱</label><input id="fTitle" value="' + esc(g ? g.title : '') + '" /></div>' +
-      '<div class="field"><label>軌道</label><select id="fTrack">' +
-      '<option value="main"' + (!g || g.track === 'main' ? ' selected' : '') + '>主線</option>' +
-      '<option value="side"' + (g && g.track === 'side' ? ' selected' : '') + '>支線</option></select></div>' +
-      '<div class="field-row"><div class="field"><label>進度</label><input id="fProg" type="number" min="0" value="' + (g ? g.progress : 0) + '" /></div>' +
-      '<div class="field"><label>目標值</label><input id="fTarget" type="number" min="1" value="' + (g ? g.target : 10) + '" /></div></div>' +
-      '<div class="field"><label>單位</label><input id="fUnit" value="' + esc(g ? (g.unit || '') : '%') + '" /></div>' +
-      '<div class="field"><label>備註</label><input id="fNote" value="' + esc(g ? (g.note || '') : '') + '" /></div>' +
-      '<div class="modal-actions"><button class="btn btn-secondary" type="button" id="mCancel">取消</button>' +
-      '<button class="btn btn-primary" type="button" id="mSave">儲存</button></div>'
-    );
-    $('#mCancel').onclick = closeModal;
-    $('#mSave').onclick = function () {
-      const title = $('#fTitle').value.trim();
-      if (!title) { toast('寫目標名稱'); return; }
-      const payload = {
-        title: title, track: $('#fTrack').value,
-        progress: Number($('#fProg').value) || 0,
-        target: Number($('#fTarget').value) || 1,
-        unit: $('#fUnit').value.trim(), note: $('#fNote').value.trim(), sample: false
+  function openAddTaskModal() {
+    const tasks = state.tasks.filter(t => t.status !== 'rolled');
+    if (tasks.length >= MAX_TODAY) return toast('今日最多 3 件');
+    const gAcademy = goalByKind('academy');
+    const steps = gAcademy ? (state.stepsByGoal[gAcademy.id] || []).filter(s => !s.done).slice(0, 20) : [];
+    openModal(`
+      <h2>加今日任務</h2>
+      <div class="field"><label>標題</label><input id="atTitle" placeholder="今日要做咩…" /></div>
+      <div class="field"><label>說明（可選）</label><textarea id="atDetail"></textarea></div>
+      <div class="field"><label>連結到 Academy 課（可選）</label>
+        <select id="atStep">
+          <option value="">— 唔連結 —</option>
+          ${steps.map(s => `<option value="${s.id}">${esc(s.title)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="atClose">取消</button>
+        <button type="button" class="btn btn-primary" id="atSave">加入</button>
+      </div>
+    `);
+    document.getElementById('atClose').onclick = () => { sfxClick(); closeModal(); };
+    document.getElementById('atSave').onclick = async () => {
+      const title = document.getElementById('atTitle').value.trim();
+      if (!title) return toast('請填標題');
+      const detail = document.getElementById('atDetail').value.trim();
+      const stepId = document.getElementById('atStep').value || null;
+      const row = {
+        user_id: uid(), day: todayStr(), title, detail, status: 'open',
+        goal_id: stepId && gAcademy ? gAcademy.id : null,
+        goal_step_id: stepId,
+        action_page: stepId ? 'academy' : null,
+        is_default: false, sort_order: 50
       };
-      if (g) { Object.keys(payload).forEach(function (k) { g[k] = payload[k]; }); }
-      else state.goals.push(Object.assign({ id: uid() }, payload));
-      save(); closeModal(); renderGoals(); toast('已儲存目標');
+      const { data, error } = await sb.from('pos_tasks').insert(row).select().single();
+      if (error) return toast(error.message);
+      state.tasks.push(data);
+      sfxDone(); closeModal(); renderToday();
     };
   }
 
-  function openMilestoneModal(id) {
-    const m = id ? state.milestones.find(function (x) { return x.id === id; }) : null;
-    openModal(
-      '<h2>' + (m ? '改里程碑' : '加里程碑') + '</h2>' +
-      '<div class="field"><label>名稱</label><input id="fTitle" value="' + esc(m ? m.title : '') + '" placeholder="拆細一個大目標…" /></div>' +
-      '<div class="field-row"><div class="field"><label>Emoji</label><input id="fEmoji" value="' + esc(m ? (m.emoji || '🏁') : '🏁') + '" maxlength="4" /></div>' +
-      '<div class="field"><label>到期日</label><input id="fDue" type="date" value="' + esc(m ? (m.due || '') : addDaysYmd(todayStr(), 14)) + '" /></div></div>' +
-      '<div class="modal-actions"><button class="btn btn-secondary" type="button" id="mCancel">取消</button>' +
-      '<button class="btn btn-primary" type="button" id="mSave">儲存</button></div>'
-    );
-    $('#mCancel').onclick = closeModal;
-    $('#mSave').onclick = function () {
-      const title = $('#fTitle').value.trim();
-      if (!title) { toast('寫里程碑名稱'); return; }
-      if (m) {
-        m.title = title; m.emoji = $('#fEmoji').value.trim() || '🏁';
-        m.due = $('#fDue').value; m.sample = false;
-      } else {
-        state.milestones.push({
-          id: uid(), title: title, emoji: $('#fEmoji').value.trim() || '🏁',
-          due: $('#fDue').value || addDaysYmd(todayStr(), 14),
-          achieved: false, achievedAt: null, sample: false
-        });
-      }
-      save(); closeModal(); renderMilestones(); toast('已儲存');
+  function openAddGoalModal() {
+    openModal(`
+      <h2>加目標</h2>
+      <div class="field"><label>標題</label><input id="agTitle" /></div>
+      <div class="field"><label>說明</label><textarea id="agDesc"></textarea></div>
+      <div class="field"><label>軌道</label>
+        <select id="agTrack">
+          <option value="main">主線</option>
+          <option value="side">支線</option>
+          <option value="habit">習慣</option>
+        </select>
+      </div>
+      <div class="field"><label>總進度（例如 10）</label><input id="agTotal" type="number" min="0" value="10" /></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="agClose">取消</button>
+        <button type="button" class="btn btn-primary" id="agSave">加入</button>
+      </div>
+    `);
+    document.getElementById('agClose').onclick = () => { sfxClick(); closeModal(); };
+    document.getElementById('agSave').onclick = async () => {
+      const title = document.getElementById('agTitle').value.trim();
+      if (!title) return toast('請填標題');
+      const row = {
+        user_id: uid(), title,
+        description: document.getElementById('agDesc').value.trim(),
+        track: document.getElementById('agTrack').value,
+        kind: 'custom',
+        progress_current: 0,
+        progress_total: Number(document.getElementById('agTotal').value) || 0,
+        is_system: false, sort_order: 50
+      };
+      const { data, error } = await sb.from('pos_goals').insert(row).select().single();
+      if (error) return toast(error.message);
+      state.goals.push(data);
+      sfxDone(); closeModal(); renderGoals();
     };
   }
 
-  function showView(name) {
-    $all('.view').forEach(function (v) { v.classList.remove('active'); });
-    const el = $('#view-' + name);
-    if (el) el.classList.add('active');
-    const primary = ['today', 'goals', 'course', 'milestones', 'more'];
-    $all('.nav-btn').forEach(function (b) {
-      const dv = b.getAttribute('data-view');
-      if (['review', 'calendar', 'settings', 'terms'].indexOf(name) !== -1) {
-        b.classList.toggle('active', dv === 'more');
-      } else {
-        b.classList.toggle('active', dv === name);
-      }
-    });
-    if (name === 'review') renderReview();
-    if (name === 'calendar') renderCalendar();
-    if (name === 'terms') renderTerms();
-    if (name === 'settings') { applyTheme(); refreshSyncUi(); refreshPwaInstallHint(); }
-  }
-
-  $all('.nav-btn').forEach(function (b) {
-    b.addEventListener('click', function () { showView(b.getAttribute('data-view')); });
-  });
-  $all('[data-open]').forEach(function (b) {
-    b.addEventListener('click', function () { showView(b.getAttribute('data-open')); });
-  });
-  $all('[data-back]').forEach(function (b) {
-    b.addEventListener('click', function () { showView(b.getAttribute('data-back')); });
-  });
-
-
-  document.addEventListener('click', function (e) {
-    const tab = e.target.closest('[data-terms-tab]');
-    if (!tab) return;
-    if (!$('#view-terms') || !$('#view-terms').classList.contains('active')) return;
-    termsTab = tab.getAttribute('data-terms-tab');
-    renderTerms();
-  });
-
-  $('#btnAddTask').onclick = function () { openTaskModal(); };
-  $('#btnAddGoal').onclick = function () { openGoalModal(); };
-  $('#btnAddMilestone').onclick = function () { openMilestoneModal(); };
-
-  $('#moodPicker').onclick = function (e) {
-    const b = e.target.closest('.mood-btn');
-    if (!b) return;
-    reviewMood = b.getAttribute('data-mood');
-    $all('#moodPicker .mood-btn').forEach(function (x) { x.classList.toggle('selected', x === b); });
-  };
-
-  $('#btnSaveReview').onclick = function () {
-    const t = todayStr();
-    state.reviews[t] = {
-      done: $('#reviewDone').value.trim(),
-      stuck: $('#reviewStuck').value.trim(),
-      tomorrow: $('#reviewTomorrow').value.trim(),
-      mood: reviewMood,
-      savedAt: now().toISOString()
-    };
-    markProgressToday();
-    checkAutoMilestones();
-    save();
-    renderAll();
-    toast('回顧已儲存 🌙');
-    celebrate();
-  };
-
-  $('#calPrev').onclick = function () {
-    calCursor.m -= 1;
-    if (calCursor.m < 1) { calCursor.m = 12; calCursor.y -= 1; }
-    renderCalendar();
-  };
-  $('#calNext').onclick = function () {
-    calCursor.m += 1;
-    if (calCursor.m > 12) { calCursor.m = 1; calCursor.y += 1; }
-    renderCalendar();
-  };
-
-  function capture(asToday) {
-    const input = $('#quickCapture');
-    const text = input.value.trim();
-    if (!text) { toast('寫啲嘢先'); return; }
-    if (asToday) {
-      if (todayOpenTasks().length >= MAX_TODAY) {
-        toast('今日已滿 3 件——改入收件箱');
-        state.inbox.unshift({ id: uid(), text: text, createdAt: now().toISOString(), sample: false });
-      } else {
-        state.tasks.push({
-          id: uid(), title: text, emoji: '⚡', priority: 'mid',
-          date: todayStr(), done: false, doneAt: null, goalId: null,
-          sample: false, createdAt: now().toISOString()
-        });
-        toast('已加到今日');
-      }
+  /* ---------- capture ---------- */
+  async function addCapture(toToday) {
+    const input = document.getElementById('quickCapture');
+    const body = input.value.trim();
+    if (!body) return;
+    if (toToday) {
+      const tasks = state.tasks.filter(t => t.status !== 'rolled');
+      if (tasks.length >= MAX_TODAY) return toast('今日已滿 3 件');
+      const { data, error } = await sb.from('pos_tasks').insert({
+        user_id: uid(), day: todayStr(), title: body, status: 'open',
+        is_default: false, sort_order: 40
+      }).select().single();
+      if (error) return toast(error.message);
+      state.tasks.push(data);
+      input.value = '';
+      sfxDone(); renderToday(); toast('已加到今日');
     } else {
-      state.inbox.unshift({ id: uid(), text: text, createdAt: now().toISOString(), sample: false });
-      toast('已入速記收件箱');
+      const { data, error } = await sb.from('pos_captures').insert({
+        user_id: uid(), body, status: 'inbox'
+      }).select().single();
+      if (error) return toast(error.message);
+      state.captures.unshift(data);
+      input.value = '';
+      sfxClick(); renderInbox(); toast('已入收件箱');
     }
-    input.value = '';
-    save(); renderAll();
   }
-  $('#btnCaptureInbox').onclick = function () { capture(false); };
-  $('#btnCaptureToday').onclick = function () { capture(true); };
-  $('#quickCapture').addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') { e.preventDefault(); capture(e.shiftKey); }
-  });
 
-  $('#btnExport').onclick = function () {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'bobo-pos-export-' + todayStr() + '.json';
-    a.click();
-    URL.revokeObjectURL(a.href);
-    toast('已匯出');
-  };
-  $('#btnReseed').onclick = function () {
-    if (!confirm('用示範資料覆蓋而家嘅資料？')) return;
-    var theme = state && state.theme === 'dark' ? 'dark' : 'light';
-    var muted = !!(state && state.muted);
-    state = seedData();
-    state.theme = theme;
-    state.muted = muted;
-    recomputeActivity();
-    save();
-    applyTheme();
-    applyMuteUi();
-    renderAll();
-    toast('已載入示範資料');
-  };
-  $('#btnWipe').onclick = function () {
-    if (!confirm('確定清空所有資料？呢個唔可以復原。')) return;
-    var theme = state && state.theme === 'dark' ? 'dark' : 'light';
-    var muted = !!(state && state.muted);
-    localStorage.removeItem(KEY);
-    state = {
-      version: 1, theme: theme, muted: muted, tasks: [], goals: [], lessons: buildLessons(),
-      milestones: [], inbox: [], reviews: {}, activityDays: {},
-      aiTerms: { learned: {}, daily: {} }
-    };
-    save(); applyTheme(); applyMuteUi(); renderAll(); toast('已清空');
-  };
-
-  $('#themeToggle').onclick = function () { toggleTheme(); };
-  $('#themeSwitch').onclick = function () { toggleTheme(); };
-  $('#muteToggle').onclick = function () { toggleMute(); };
-  $('#soundSwitch').onclick = function () { toggleMute(); };
-
-  $('#btnCopySyncId').onclick = function () {
-    if (!syncId) return;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(syncId).then(function () { toast('已複製同步 ID'); })
-        .catch(function () { toast(syncId); });
-    } else {
-      toast(syncId);
-    }
-  };
-  $('#btnSyncNow').onclick = async function () {
-    toast('同步中…');
-    var ok = await upsertCloud();
-    toast(ok ? '已同步到雲端' : '同步失敗，仍然用本機資料');
-    refreshSyncUi();
-  };
-  $('#btnApplySyncId').onclick = async function () {
-    var next = ($('#syncIdInput').value || '').trim();
-    if (!next || next.length < 8) { toast('請貼上有效同步 ID'); return; }
-    if (!confirm('改用呢個同步 ID？本機資料會同雲端合併（雲端較新就用雲端）。')) return;
-    syncId = next;
-    localStorage.setItem(SYNC_ID_KEY, syncId);
-    $('#syncIdInput').value = '';
-    refreshSyncUi();
-    await pullAndMerge();
-    toast('已切換同步 ID');
-  };
-
-  function isStandaloneDisplay() {
+  /* ---------- migration ---------- */
+  async function migrateOldDataOnce() {
+    if (localStorage.getItem(MIGRATED_KEY) === '1') return;
+    let old = null;
     try {
-      if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
-      if (window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches) return true;
-      if (typeof navigator !== 'undefined' && navigator.standalone === true) return true;
-    } catch (e) {}
-    return false;
-  }
-
-  function refreshPwaInstallHint() {
-    var el = $('#pwaInstallHint');
-    if (!el) return;
-    if (isStandaloneDisplay()) {
-      el.classList.remove('show');
-      el.style.display = 'none';
-    } else {
-      el.classList.add('show');
-      el.style.display = '';
+      const raw = localStorage.getItem(OLD_KEY);
+      if (raw) old = JSON.parse(raw);
+    } catch (_) {}
+    // also try old blob table with sync id
+    if (!old) {
+      try {
+        const syncId = localStorage.getItem('bobo-pos-sync-id');
+        if (syncId) {
+          const { data } = await sb.from('bobo_personal_os').select('data').eq('id', syncId).maybeSingle();
+          if (data && data.data) old = data.data;
+        }
+      } catch (_) {}
+    }
+    if (!old) {
+      localStorage.setItem(MIGRATED_KEY, '1');
+      return;
+    }
+    try {
+      // theme/mute already in profile via bootstrap; update if present
+      if (old.theme || typeof old.muted === 'boolean') {
+        await sb.from('pos_profiles').update({
+          theme: old.theme === 'dark' ? 'dark' : 'light',
+          muted: !!old.muted
+        }).eq('user_id', uid());
+      }
+      // captures
+      if (Array.isArray(old.inbox) && old.inbox.length) {
+        const rows = old.inbox.slice(0, 50).map(x => ({
+          user_id: uid(),
+          body: typeof x === 'string' ? x : (x.text || x.body || JSON.stringify(x)),
+          status: 'inbox'
+        }));
+        await sb.from('pos_captures').insert(rows);
+      }
+      // academy lessons done → steps
+      const g = goalByKind('academy');
+      if (g && Array.isArray(old.lessonsDone)) {
+        for (const n of old.lessonsDone) {
+          const idx = Number(n);
+          if (!idx) continue;
+          await sb.from('pos_goal_steps').update({ done: true, done_at: new Date().toISOString() })
+            .eq('goal_id', g.id).eq('step_index', idx).eq('done', false);
+        }
+        const { data: steps } = await sb.from('pos_goal_steps').select('*').eq('goal_id', g.id).order('step_index');
+        state.stepsByGoal[g.id] = steps || [];
+      }
+      // learned terms
+      if (Array.isArray(old.learnedTerms)) {
+        for (const t of old.learnedTerms.slice(0, 200)) {
+          const termId = t.id || t.termId || t;
+          if (typeof termId !== 'string') continue;
+          await sb.from('pos_ai_term_progress').upsert({
+            user_id: uid(), term_id: termId, day: t.day || todayStr(),
+            learned_at: t.at || new Date().toISOString()
+          }, { onConflict: 'user_id,term_id' });
+        }
+      }
+      localStorage.setItem(MIGRATED_KEY, '1');
+      toast('已遷移舊本機資料');
+    } catch (e) {
+      console.warn('migration partial', e);
+      localStorage.setItem(MIGRATED_KEY, '1');
     }
   }
 
-  function registerServiceWorker() {
-    if (!('serviceWorker' in navigator)) return;
-    var swUrl = './sw.js';
-    navigator.serviceWorker.register(swUrl).then(function (reg) {
-      // quiet success
-      if (reg && reg.update) try { reg.update(); } catch (e) {}
-    }).catch(function (err) {
-      console.warn('SW register failed', err);
+  /* ---------- events ---------- */
+  function bindEvents() {
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => { sfxClick(); showView(btn.dataset.view); });
     });
+    document.querySelectorAll('[data-open]').forEach(btn => {
+      btn.addEventListener('click', () => { sfxClick(); showView(btn.getAttribute('data-open')); });
+    });
+    document.querySelectorAll('[data-back]').forEach(btn => {
+      btn.addEventListener('click', () => { sfxClick(); showView(btn.getAttribute('data-back')); });
+    });
+
+    document.getElementById('themeToggle').onclick = async () => {
+      sfxClick();
+      const next = (state.profile?.theme || localStorage.getItem(THEME_KEY) || 'light') === 'dark' ? 'light' : 'dark';
+      await setTheme(next);
+    };
+    document.getElementById('themeSwitch').onclick = async () => {
+      sfxClick();
+      const next = (state.profile?.theme || 'light') === 'dark' ? 'light' : 'dark';
+      await setTheme(next);
+    };
+    document.getElementById('muteToggle').onclick = async () => {
+      await setMuted(!muted());
+      if (!muted()) sfxClick();
+    };
+    document.getElementById('soundSwitch').onclick = async () => {
+      await setMuted(!muted());
+      if (!muted()) sfxClick();
+    };
+
+    document.getElementById('btnAddTask').onclick = () => { sfxClick(); openAddTaskModal(); };
+    document.getElementById('btnAddGoal').onclick = () => { sfxClick(); openAddGoalModal(); };
+    document.getElementById('btnCaptureInbox').onclick = () => addCapture(false);
+    document.getElementById('btnCaptureToday').onclick = () => addCapture(true);
+    document.getElementById('quickCapture').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); addCapture(false); }
+    });
+    document.getElementById('btnSaveReview').onclick = () => saveReview();
+    document.getElementById('btnSyncNow').onclick = async () => {
+      sfxClick(); setSyncBadge('syncing', '同步中…');
+      try {
+        await loadAll();
+        await ensureTodayDefaults();
+        renderAll();
+        setSyncBadge('synced', '已連線 · 真表後端');
+        toast('已重新載入');
+      } catch (e) {
+        setSyncBadge('offline', '同步失敗');
+        toast(e.message || String(e));
+      }
+    };
+
+    document.getElementById('moodPicker').onclick = (e) => {
+      const b = e.target.closest('.mood-btn');
+      if (!b) return;
+      sfxClick();
+      state.reviewMood = b.dataset.mood;
+      document.querySelectorAll('.mood-btn').forEach(x => x.classList.toggle('selected', x === b));
+    };
+
+    document.querySelectorAll('[data-terms-tab]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        sfxClick();
+        document.querySelectorAll('.terms-tab').forEach(t => t.classList.toggle('active', t === tab));
+        const which = tab.getAttribute('data-terms-tab');
+        document.getElementById('termsTodayPanel').hidden = which !== 'today';
+        document.getElementById('termsLearnedPanel').hidden = which !== 'learned';
+        if (which === 'learned') renderLearnedPanel();
+      });
+    });
+
+    document.getElementById('calPrev').onclick = () => {
+      sfxClick();
+      let { y, m } = state.calMonth;
+      m--; if (m < 0) { m = 11; y--; }
+      state.calMonth = { y, m };
+      renderCalendar();
+    };
+    document.getElementById('calNext').onclick = () => {
+      sfxClick();
+      let { y, m } = state.calMonth;
+      m++; if (m > 11) { m = 0; y++; }
+      state.calMonth = { y, m };
+      renderCalendar();
+    };
+
+    document.getElementById('modalBackdrop').addEventListener('click', (e) => {
+      if (e.target.id === 'modalBackdrop') closeModal();
+    });
+
+    // delegated
+    document.getElementById('todayTaskList').addEventListener('click', (e) => {
+      const goto = e.target.closest('[data-goto]');
+      if (goto) {
+        e.stopPropagation();
+        sfxClick();
+        const page = goto.getAttribute('data-goto');
+        if (page === 'ai_terms') showView('terms');
+        else if (page === 'daily_review') showView('review');
+        else if (page === 'academy') showView('course');
+        return;
+      }
+      const tog = e.target.closest('[data-toggle]');
+      if (tog) { toggleTask(tog.getAttribute('data-toggle')); return; }
+      const detail = e.target.closest('[data-detail]');
+      if (detail) { sfxClick(); openTaskDetail(detail.getAttribute('data-detail')); }
+    });
+
+    document.getElementById('inboxList').addEventListener('click', async (e) => {
+      const toToday = e.target.closest('[data-cap-today]');
+      const dismiss = e.target.closest('[data-cap-dismiss]');
+      if (toToday) {
+        const id = toToday.getAttribute('data-cap-today');
+        const cap = state.captures.find(c => c.id === id);
+        if (!cap) return;
+        const tasks = state.tasks.filter(t => t.status !== 'rolled');
+        if (tasks.length >= MAX_TODAY) return toast('今日已滿 3 件');
+        const { data, error } = await sb.from('pos_tasks').insert({
+          user_id: uid(), day: todayStr(), title: cap.body, status: 'open', is_default: false, sort_order: 40
+        }).select().single();
+        if (error) return toast(error.message);
+        await sb.from('pos_captures').update({ status: 'converted' }).eq('id', id);
+        state.tasks.push(data);
+        state.captures = state.captures.filter(c => c.id !== id);
+        sfxDone(); renderToday();
+      }
+      if (dismiss) {
+        const id = dismiss.getAttribute('data-cap-dismiss');
+        await sb.from('pos_captures').update({ status: 'dismissed' }).eq('id', id);
+        state.captures = state.captures.filter(c => c.id !== id);
+        sfxClick(); renderInbox();
+      }
+    });
+
+    document.getElementById('lessonGrid').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-step]');
+      if (b) toggleStep(b.getAttribute('data-step'));
+    });
+
+    document.getElementById('termsTodayPanel').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-learn]');
+      if (b) learnTerm(b.getAttribute('data-learn'));
+    });
+
+    document.getElementById('calDays').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-day]');
+      if (!b) return;
+      sfxClick();
+      renderDayDetail(b.getAttribute('data-day'));
+      renderCalendar();
+    });
+
+    document.getElementById('goalsMain').addEventListener('click', goalNav);
+    document.getElementById('goalsSide').addEventListener('click', goalNav);
+    document.getElementById('goalsHabit').addEventListener('click', goalNav);
+    function goalNav(e) {
+      if (e.target.closest('[data-open-course]')) { sfxClick(); showView('course'); }
+      if (e.target.closest('[data-open-terms]')) { sfxClick(); showView('terms'); }
+      if (e.target.closest('[data-open-review]')) { sfxClick(); showView('review'); }
+    }
   }
 
-  // Unlock AudioContext on first user gesture
-  ['pointerdown', 'touchstart', 'keydown'].forEach(function (ev) {
-    document.addEventListener(ev, function once() {
-      unlockAudioFromGesture();
-    }, { once: true, passive: true });
-  });
+  /* ---------- boot ---------- */
+  async function boot() {
+    applyTheme(localStorage.getItem(THEME_KEY) || 'light');
+    applyMute(localStorage.getItem(MUTE_KEY) === '1');
+    bindEvents();
 
-  // Global UI SFX (capture phase so dynamically rendered buttons also get sounds)
-  document.addEventListener('click', function (e) {
-    var el = e.target && e.target.closest
-      ? e.target.closest('button, .nav-btn, .task, .lesson, .term-card, .cal-day, .mood-btn, .terms-tab, .switch, a.btn')
-      : null;
-    if (!el) return;
-    if (el.id === 'muteToggle' || el.id === 'soundSwitch') return; // handled in handlers
-    if (el.id === 'themeToggle' || el.id === 'themeSwitch') return; // toggleTheme plays
-    if (el.disabled) return;
-    var successish = el.getAttribute('data-sfx') === 'success'
-      || el.classList.contains('check')
-      || (el.getAttribute('data-act') === 'toggle');
-    // Prefer soft tap for nav / generic; success is fired from action handlers
-    if (el.classList.contains('nav-btn') || el.classList.contains('terms-tab') || el.classList.contains('cal-day') || el.classList.contains('mood-btn')) {
-      playSfx('tap');
-    } else if (el.classList.contains('switch')) {
-      playSfx('toggle');
-    } else if (successish) {
-      // leave success to explicit handlers for accurate complete feedback
-      playSfx('tap');
-    } else {
-      playSfx('tap');
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
-  }, true);
 
-  syncId = getOrCreateSyncId();
-  initSupabase();
-  load();
-  applyTheme();
-  applyMuteUi();
-  checkAutoMilestones();
-  renderAll();
-  refreshSyncUi();
-  refreshPwaInstallHint();
-  registerServiceWorker();
-  pullAndMerge().then(function () { applyMuteUi(); refreshSyncUi(); });
+    try {
+      setSyncBadge('syncing', '登入中…');
+      await ensureAuth();
+      const { error: bootErr } = await sb.rpc('pos_bootstrap_user');
+      if (bootErr) throw bootErr;
+      await migrateOldDataOnce();
+      await loadAll();
+      await rollIncompleteTasks();
+      await loadAll(); // refresh after roll
+      await ensureTodayDefaults();
+      state.ready = true;
+      setSyncBadge('synced', '已連線 · 真表後端');
+      document.getElementById('bootScreen').style.display = 'none';
+      renderAll();
+    } catch (err) {
+      console.error(err);
+      showAuthError(err);
+    }
+  }
+
+  boot();
 })();
+
 </script>
 </body>
 </html>
