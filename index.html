@@ -1102,13 +1102,21 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   const THEME_KEY = 'bobo-pos-theme';
   const MUTE_KEY = 'bobo-pos-muted';
 
-  /* ---------- Google Calendar day cache (local; future 6am sync writes same shape) ---------- */
+  /* ---------- Google Calendar day cache ----------
+   * Local mirror key: bobo-pos-gcal-v1
+   * Canonical store: public.pos_gcal_days (Supabase)
+   *
+   * Morning sync (06:00 Asia/Taipei) should UPSERT pos_gcal_days:
+   *   { user_id, day, synced_at, source:'google', events:[...] }
+   * onConflict: user_id,day
+   * Then the app loadAll → hydrateGcalFromServer → saveGcalStore → render.
+   * ------------------------------------------------ */
   const GCAL_KEY = 'bobo-pos-gcal-v1';
   /**
-   * Store shape (localStorage JSON):
+   * Local + row.events shape:
    * {
    *   day: 'YYYY-MM-DD',          // Asia/Taipei calendar day
-   *   syncedAt: ISO string|null,  // set by sync routine
+   *   syncedAt: ISO string|null,
    *   source: 'mock'|'google'|…,
    *   events: [{
    *     id, title, allDay?,
@@ -1139,7 +1147,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     } catch { return null; }
   }
 
-  /** Persist day payload. Morning sync should call saveGcalStore({ day, syncedAt, source:'google', events }). */
+  /** Write local mirror. Server truth lives in pos_gcal_days (sync upserts there). */
   function saveGcalStore(data) {
     const payload = {
       day: data.day || todayStr(),
@@ -1152,15 +1160,53 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     return payload;
   }
 
+  function gcalRowToStore(row) {
+    if (!row) return null;
+    const day = typeof row.day === 'string' ? row.day.slice(0, 10) : row.day;
+    return {
+      day,
+      syncedAt: row.synced_at || null,
+      source: row.source || (row.synced_at ? 'google' : 'mock'),
+      events: Array.isArray(row.events) ? row.events : []
+    };
+  }
+
+  /**
+   * Prefer Supabase pos_gcal_days for today.
+   * - Row found → mirror to localStorage (even if events=[] — do NOT keep mock over google empty day).
+   * - No row → leave local alone; ensureGcalDay may seed mock for UI review.
+   */
+  async function hydrateGcalFromServer() {
+    const day = todayStr();
+    const uidv = uid();
+    if (!uidv) return null;
+    try {
+      const { data, error } = await sb.from('pos_gcal_days')
+        .select('user_id,day,synced_at,source,events')
+        .eq('user_id', uidv)
+        .eq('day', day)
+        .maybeSingle();
+      if (error) {
+        console.warn('[gcal] hydrate failed', error.message || error);
+        return null;
+      }
+      if (!data) return null;
+      return saveGcalStore(gcalRowToStore(data));
+    } catch (e) {
+      console.warn('[gcal] hydrate exception', e);
+      return null;
+    }
+  }
+
   function ensureGcalDay() {
     const day = todayStr();
     let store = loadGcalStore();
-    if (!store || store.day !== day) {
-      // New day / missing: seed mock until real Google sync overwrites.
-      store = saveGcalStore({ day, syncedAt: null, source: 'mock', events: mockGcalEventsFor(day) });
-    } else {
+    if (store && store.day === day) {
       state.gcalDay = store;
+      return store;
     }
+    // No today cache (and hydrate found nothing): seed mock for demo until first google sync.
+    store = saveGcalStore({ day, syncedAt: null, source: 'mock', events: mockGcalEventsFor(day) });
     return store;
   }
 
@@ -1183,9 +1229,13 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       return String(a.start || '').localeCompare(String(b.start || ''));
     });
     if (syncLabel) {
-      if (store.syncedAt) syncLabel.textContent = '已同步 ' + formatTime(store.syncedAt);
-      else if (store.source === 'mock') syncLabel.textContent = '示範資料';
-      else syncLabel.textContent = '';
+      if (store.source === 'google' || store.syncedAt) {
+        syncLabel.textContent = store.syncedAt ? ('已同步 ' + formatTime(store.syncedAt)) : '已同步';
+      } else if (store.source === 'mock') {
+        syncLabel.textContent = '示範資料';
+      } else {
+        syncLabel.textContent = '';
+      }
     }
     if (!events.length) {
       list.className = '';
@@ -1470,6 +1520,9 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
 
     // daily terms
     await ensureDailyTerms(dailyRes.data);
+
+    // Google Calendar day: prefer pos_gcal_days (morning sync upserts); soft-fail keeps mock/local.
+    await hydrateGcalFromServer();
 
     applyTheme(state.profile?.theme || localStorage.getItem(THEME_KEY) || 'dark');
     applyMute(!!(state.profile?.muted ?? (localStorage.getItem(MUTE_KEY) === '1')));
