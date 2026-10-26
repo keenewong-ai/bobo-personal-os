@@ -1139,8 +1139,9 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
    * Then the app loadAll → hydrateGcalFromServer → saveGcalStore → render.
    * ------------------------------------------------ */
   const GCAL_KEY = 'bobo-pos-gcal-v1';
-  /** Routine webhook URL for on-demand Google→DB sync. Parent fills after creating webhook trigger. */
-  const POS_GCAL_SYNC_HOOK = '';
+  /** Routine webhook: on-demand Google→pos_gcal_days sync (personal; public Pages). */
+  const POS_GCAL_SYNC_HOOK = 'https://api2.cursor.sh/automations/webhook/6f310198-8026-51aa-9c51-f3229d5c01b1';
+  const POS_GCAL_SYNC_HOOK_AUTH = 'Bearer crsr_a9e5d79995b8b14152431842bdccbbed8b8330d4cb3545ce98ed8449b1e82a74';
   /**
    * Local + row.events shape:
    * {
@@ -1251,24 +1252,46 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     try {
       const hook = (typeof window.POS_GCAL_SYNC_HOOK === 'string' && window.POS_GCAL_SYNC_HOOK)
         || POS_GCAL_SYNC_HOOK;
+      const hookAuth = (typeof window.POS_GCAL_SYNC_HOOK_AUTH === 'string' && window.POS_GCAL_SYNC_HOOK_AUTH)
+        || (typeof POS_GCAL_SYNC_HOOK_AUTH !== 'undefined' ? POS_GCAL_SYNC_HOOK_AUTH : '');
       if (hook) {
         hooked = true;
+        const headers = { 'Content-Type': 'application/json' };
+        if (hookAuth) headers['Authorization'] = hookAuth;
         try {
           await fetch(hook, {
             method: 'POST',
             mode: 'cors',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ day, source: 'manual', user_id: uid() || null })
           });
         } catch (e) {
           console.warn('[gcal] sync hook soft-fail', e);
         }
-        await sleep(2200);
+        // Bot webhook usually needs several seconds to pull Google + upsert.
+        await sleep(9000);
       }
-      const store = await hydrateGcalFromServer();
+
+      const before = loadGcalStore();
+      const beforeSynced = before && before.day === day ? before.syncedAt : null;
+      let store = await hydrateGcalFromServer();
+      let rounds = 0;
+      while (hooked && rounds < 2) {
+        const fresh = store && store.day === day && store.source === 'google';
+        const newer = fresh && store.syncedAt && store.syncedAt !== beforeSynced
+          && (!beforeSynced || String(store.syncedAt) > String(beforeSynced));
+        if (fresh && (newer || (store.events && store.events.length) || store.syncedAt)) {
+          // Got a google row (new sync or at least present after wait)
+          if (newer || store.syncedAt) break;
+        }
+        rounds++;
+        await sleep(3000);
+        store = await hydrateGcalFromServer();
+      }
       renderGcalEvents();
       if (hooked) {
-        toast(store ? '已更新行程' : '已觸發同步；稍後再撳一次刷新');
+        const ok = store && store.day === day && (store.source === 'google' || store.syncedAt);
+        toast(ok ? '已更新行程' : '已觸發同步；若未變，再撳一次或稍等');
       } else {
         toast(store ? '已刷新行程（伺服器資料）' : '未有伺服器行程；朝早會自動同步，或喺 chat 叫即刻同步');
       }
