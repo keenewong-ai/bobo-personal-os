@@ -4,8 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#58CC02" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
-<meta name="theme-color" content="#58CC02" id="themeColorMeta" />
+<meta name="theme-color" content="#131f24" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#131f24" id="themeColorMeta" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -32,16 +32,16 @@
   --ring-track: #E5E5E5;
 }
 [data-theme="dark"] {
-  --green: #58CC02; --green-dark: #89E219; --green-soft: #1A3320;
-  --blue: #1CB0F6; --blue-soft: #0D2A38; --orange: #FF9600; --orange-soft: #3A2A10;
-  --red: #FF6B6B; --purple: #CE82FF; --purple-soft: #2A1A38;
-  --gray-50: #1A1A1A; --gray-100: #2C2C2C; --gray-200: #3D3D3D; --gray-400: #8A8A8A;
-  --gray-600: #A8A8A8; --gray-800: #E2E2E2; --gray-900: #F2F2F2; --card: #242424;
-  --bg: #121212; --surface: #1C1C1C; --header-bg: #1A1A1A; --nav-bg: #1A1A1A; --input-bg: #2A2A2A;
-  --achieved-bg: #1A3320; --achieved-border: #3A6B1A;
-  --capture-fade: rgba(18,18,18,.95); --modal-scrim: rgba(0,0,0,.65);
+  --green: #58CC02; --green-dark: #89E219; --green-soft: #1B3A24;
+  --blue: #1CB0F6; --blue-soft: #143642; --orange: #FF9600; --orange-soft: #3A2E14;
+  --red: #FF6B6B; --purple: #CE82FF; --purple-soft: #2E2040;
+  --gray-50: #18262C; --gray-100: #24353C; --gray-200: #334850; --gray-400: #8FA3AB;
+  --gray-600: #B7C5CB; --gray-800: #E6EEF1; --gray-900: #F4F8F9; --card: #1B2B32;
+  --bg: #131f24; --surface: #1A2830; --header-bg: #17252B; --nav-bg: #17252B; --input-bg: #22343C;
+  --achieved-bg: #1B3A24; --achieved-border: #3A6B1A;
+  --capture-fade: rgba(19,31,36,.95); --modal-scrim: rgba(0,0,0,.65);
   --shadow: 0 2px 0 rgba(0,0,0,.35); --shadow-lg: 0 8px 28px rgba(0,0,0,.5);
-  --ring-track: #3D3D3D;
+  --ring-track: #334850;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-tap-highlight-color: transparent; }
@@ -456,19 +456,77 @@ select {
 @keyframes spin { to { transform: rotate(360deg); } }
 .goals-habit { margin-top: 8px; }
 .track-habit { background: var(--blue-soft); color: #0A7EA4; }
+
+/* Duo soft-flat icons */
+.nav-ico, .ui-ico, .empty-ico, .brand-logo img, .more-link .ico img, .ms-icon img, .fire img, .celeb-burst img {
+  display: inline-block; vertical-align: middle; object-fit: contain;
+}
+.nav-ico { width: 28px; height: 28px; }
+.nav-btn .ico { display:flex; align-items:center; justify-content:center; line-height:0; }
+.nav-btn .ico .nav-ico { width: 26px; height: 26px; }
+.ui-ico { width: 22px; height: 22px; }
+.ui-ico.lg { width: 28px; height: 28px; }
+.ui-ico.sm { width: 18px; height: 18px; }
+.empty-ico { width: 48px; height: 48px; margin-bottom: 8px; }
+.brand-logo { width: 40px; height: 40px; display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:12px; background: var(--green-soft); }
+.brand-logo img { width: 34px; height: 34px; }
+.more-link .ico { width: 40px; height: 40px; display:flex; align-items:center; justify-content:center; }
+.more-link .ico img { width: 36px; height: 36px; }
+.theme-toggle, .mute-toggle { display:flex; align-items:center; justify-content:center; padding: 4px; }
+.theme-toggle img, .mute-toggle img { width: 28px; height: 28px; }
+.streak-pill .fire { display:inline-flex; align-items:center; }
+.streak-pill .fire img { width: 18px; height: 18px; }
+.check { display:flex; align-items:center; justify-content:center; padding:0; overflow:hidden; }
+.check img { width: 18px; height: 18px; }
+.task.done .check { background: transparent; border-color: transparent; }
+.task.done .check img { width: 28px; height: 28px; }
+.icon-btn img { width: 22px; height: 22px; }
+.cal-nav .icon-btn img { width: 24px; height: 24px; }
+.btn .ui-ico { margin-right: 4px; }
+.btn-ico-only { display:inline-flex; align-items:center; justify-content:center; min-width: 40px; padding: 6px; }
+.btn-ico-only img { width: 22px; height: 22px; margin:0; }
+.ms-icon { width: 40px; height: 40px; display:flex; align-items:center; justify-content:center; }
+.ms-icon img { width: 36px; height: 36px; }
+.celeb-burst img { width: 72px; height: 72px; }
+.back-ico { width: 18px; height: 18px; margin-right: 4px; vertical-align: -3px; }
+
+/* Soft pastel task/goal color themes (10 presets) */
+.color-swatches { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+.color-swatch {
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; padding:0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
+}
+.color-swatch.selected { border-color: var(--gray-900); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px currentColor; }
+.color-swatch.none { background: repeating-conic-gradient(var(--gray-200) 0% 25%, var(--card) 0% 50%) 50%/12px 12px; }
+.task.theme-tint {
+  border-left: 4px solid var(--theme-accent, var(--green));
+  background: linear-gradient(90deg, var(--theme-soft, transparent), var(--card) 48%);
+}
+.goal-card.theme-tint {
+  border-left: 4px solid var(--theme-accent, var(--green));
+  background: linear-gradient(135deg, var(--theme-soft, transparent), var(--card) 55%);
+}
+.goal-card .color-dot {
+  display:inline-block; width:10px; height:10px; border-radius:50%;
+  margin-right:6px; vertical-align:1px; background: var(--theme-accent, var(--gray-400));
+}
+
 </style>
 <script>
 (function(){
   try {
     var t = localStorage.getItem('bobo-pos-theme');
     if (!t) {
-      var raw = localStorage.getItem('bobo-pos-v1');
-      if (raw) { var s = JSON.parse(raw); if (s && s.theme === 'dark') t = 'dark'; }
+      try {
+        var raw = localStorage.getItem('bobo-pos-v1');
+        if (raw) { var s = JSON.parse(raw); if (s && s.theme) t = s.theme; }
+      } catch (_) {}
+      if (!t) t = 'dark';
     }
     if (t === 'dark') {
       document.documentElement.setAttribute('data-theme','dark');
       var m = document.getElementById('themeColorMeta');
-      if (m) m.setAttribute('content','#121212');
+      if (m) m.setAttribute('content','#131f24');
     }
   } catch (e) {}
 })();
@@ -484,17 +542,17 @@ select {
 
 <header class="app-header">
   <div class="brand">
-    <div class="brand-logo">🦉</div>
+    <div class="brand-logo"><img src="./icons/nav/today.png" alt="" class="nav-ico" /></div>
     <div>
       <h1>BoBo OS</h1>
       <p>睇到 · 做到 · 記得</p>
     </div>
   </div>
   <div class="header-actions">
-    <button class="mute-toggle" id="muteToggle" type="button" title="靜音" aria-label="靜音" aria-pressed="false">🔊</button>
-    <button class="theme-toggle" id="themeToggle" type="button" title="切換暗黑模式" aria-label="切換暗黑模式">🌙</button>
+    <button class="mute-toggle" id="muteToggle" type="button" title="靜音" aria-label="靜音" aria-pressed="false"><img src="./icons/ui/speaker.png" alt="" /></button>
+    <button class="theme-toggle" id="themeToggle" type="button" title="切換暗黑模式" aria-label="切換暗黑模式"><img src="./icons/ui/moon.png" alt="" id="themeToggleImg" /></button>
     <div class="streak-pill" id="streakPill" title="連續日子">
-      <span class="fire">🔥</span>
+      <span class="fire"><img src="./icons/ui/fire.png" alt="" /></span>
       <span id="streakNum">0</span>
     </div>
   </div>
@@ -520,7 +578,7 @@ select {
     </div>
     <div id="todayLimitWarn" class="limit-warn" hidden>未完成已經有 5 件——做完或者刪走先至可以加新嘅。</div>
     <div id="todayTaskList"></div>
-    <button class="btn btn-primary btn-block" id="btnAddTask" type="button">＋ 加今日任務</button>
+    <button class="btn btn-primary btn-block" id="btnAddTask" type="button"><img class="ui-ico sm" src="./icons/ui/plus.png" alt="" /> 加今日任務</button>
     <div class="section-title" style="margin-top:20px"><span>速記收件箱</span><span id="inboxCount"></span></div>
     <div id="inboxList"></div>
   </section>
@@ -532,7 +590,7 @@ select {
     <div id="goalsSide"></div>
     <div class="section-title goals-habit"><span>習慣</span><span id="goalsHabitMonth">本月</span></div>
     <div id="goalsHabit"></div>
-    <button class="btn btn-secondary btn-block" id="btnAddGoal" type="button">＋ 加目標</button>
+    <button class="btn btn-secondary btn-block" id="btnAddGoal" type="button"><img class="ui-ico sm" src="./icons/ui/plus.png" alt="" /> 加目標</button>
   </section>
 
   <section id="view-course" class="view">
@@ -558,7 +616,7 @@ select {
   </section>
 
   <section id="view-milestones" class="view">
-    <button class="btn btn-ghost" type="button" data-back="more">← 返更多</button>
+    <button class="btn btn-ghost" type="button" data-back="more"><img class="back-ico" src="./icons/ui/back.png" alt="" /> 返更多</button>
     <div class="section-title"><span>里程碑牆</span><span>Academy checkpoints</span></div>
     <div id="milestoneList"></div>
   </section>
@@ -566,26 +624,26 @@ select {
   <section id="view-more" class="view">
     <div class="more-list">
       <button class="more-link" type="button" data-open="terms">
-        <div class="ico">🧠</div>
+        <div class="ico"><img src="./icons/ui/brain.png" alt="" /></div>
         <div><strong>每日五條 AI Terms</strong><span>每日 5 個新詞彙 · 累積已學可回睇</span></div>
       </button>
       <button class="more-link" type="button" data-open="review">
-        <div class="ico">🌙</div>
+        <div class="ico"><img src="./icons/ui/moon.png" alt="" /></div>
         <div><strong>每日回顧</strong><span>5 分鐘收工：完成、卡住、聽日第一件</span></div>
       </button>
       <button class="more-link" type="button" data-open="milestones">
-        <div class="ico">🏆</div>
+        <div class="ico"><img src="./icons/ui/trophy.png" alt="" /></div>
         <div><strong>里程碑牆</strong><span>Academy checkpoints · 階段目標</span></div>
       </button>
       <button class="more-link" type="button" data-open="settings">
-        <div class="ico">⚙️</div>
+        <div class="ico"><img src="./icons/ui/gear.png" alt="" /></div>
         <div><strong>設定</strong><span>暗黑模式 · 雲端帳號 · 加到主畫面</span></div>
       </button>
     </div>
   </section>
 
   <section id="view-terms" class="view">
-    <button class="btn btn-ghost" type="button" data-back="more">← 返更多</button>
+    <button class="btn btn-ghost" type="button" data-back="more"><img class="back-ico" src="./icons/ui/back.png" alt="" /> 返更多</button>
     <div class="card soft-green" style="margin-top:8px">
       <h2 style="font-size:17px;font-weight:900;margin-bottom:4px">每日五條 AI Terms</h2>
       <p class="hint" id="termsDateLabel"></p>
@@ -603,7 +661,7 @@ select {
   </section>
 
   <section id="view-review" class="view">
-    <button class="btn btn-ghost" type="button" data-back="more">← 返更多</button>
+    <button class="btn btn-ghost" type="button" data-back="more"><img class="back-ico" src="./icons/ui/back.png" alt="" /> 返更多</button>
     <div class="card soft-blue" style="margin-top:8px">
       <h2 style="font-size:17px;font-weight:900;margin-bottom:4px">每日 5 分鐘回顧</h2>
       <p class="hint" id="reviewDateLabel"></p>
@@ -638,9 +696,9 @@ select {
   <section id="view-calendar" class="view">
     <div class="section-title"><span>完成日曆</span><span>Calendar</span></div>
     <div class="cal-nav">
-      <button class="icon-btn" id="calPrev" type="button" aria-label="上月">◀</button>
+      <button class="icon-btn" id="calPrev" type="button" aria-label="上月"><img src="./icons/ui/chev-left.png" alt="" /></button>
       <h2 id="calMonthLabel"></h2>
-      <button class="icon-btn" id="calNext" type="button" aria-label="下月">▶</button>
+      <button class="icon-btn" id="calNext" type="button" aria-label="下月"><img src="./icons/ui/chev-right.png" alt="" /></button>
     </div>
     <div class="cal-grid" id="calDows"></div>
     <div class="cal-grid" id="calDays"></div>
@@ -651,7 +709,7 @@ select {
   </section>
 
   <section id="view-settings" class="view">
-    <button class="btn btn-ghost" type="button" data-back="more">← 返更多</button>
+    <button class="btn btn-ghost" type="button" data-back="more"><img class="back-ico" src="./icons/ui/back.png" alt="" /> 返更多</button>
     <div class="card" style="margin-top:8px">
       <h2 style="font-size:17px;font-weight:900;margin-bottom:8px">設定</h2>
       <div class="theme-row">
@@ -669,7 +727,7 @@ select {
         <button class="switch on" id="soundSwitch" type="button" role="switch" aria-checked="true" aria-label="按鈕聲效"><i></i></button>
       </div>
       <div class="card soft-green pwa-hint" id="pwaInstallHint" style="margin:0 0 12px;padding:12px">
-        <strong>📱 加到主畫面</strong>
+        <strong>加到主畫面</strong>
         <p class="hint" style="margin-top:4px;margin-bottom:0">裝成 App 之後離線都開得，進度照樣同步。</p>
         <ol id="pwaInstallSteps">
           <li>用 Chrome 打開呢個網站</li>
@@ -694,18 +752,18 @@ select {
 <div class="capture-bar" id="captureBar">
   <div class="capture-inner">
     <input id="quickCapture" type="text" placeholder="速記：諗到咩就寫…" autocomplete="off" />
-    <button class="btn btn-primary btn-sm" id="btnCaptureInbox" type="button" title="入收件箱">📥</button>
-    <button class="btn btn-secondary btn-sm" id="btnCaptureToday" type="button" title="變今日任務">✅</button>
+    <button class="btn btn-primary btn-sm btn-ico-only" id="btnCaptureInbox" type="button" title="入收件箱"><img src="./icons/ui/inbox.png" alt="" /></button>
+    <button class="btn btn-secondary btn-sm btn-ico-only" id="btnCaptureToday" type="button" title="變今日任務"><img src="./icons/ui/check.png" alt="" /></button>
   </div>
 </div>
 
 <nav class="bottom-nav" aria-label="主導航">
   <div class="nav-inner">
-    <button class="nav-btn active" data-view="today" type="button"><span class="ico">☀️</span>今日</button>
-    <button class="nav-btn" data-view="goals" type="button"><span class="ico">🎯</span>目標</button>
-    <button class="nav-btn" data-view="course" type="button"><span class="ico">📚</span>課程</button>
-    <button class="nav-btn" data-view="calendar" type="button"><span class="ico">📅</span>日曆</button>
-    <button class="nav-btn" data-view="more" type="button"><span class="ico">⋯</span>更多</button>
+    <button class="nav-btn active" data-view="today" type="button"><span class="ico"><img class="nav-ico" src="./icons/nav/today.png" alt="" /></span>今日</button>
+    <button class="nav-btn" data-view="goals" type="button"><span class="ico"><img class="nav-ico" src="./icons/nav/goals.png" alt="" /></span>目標</button>
+    <button class="nav-btn" data-view="course" type="button"><span class="ico"><img class="nav-ico" src="./icons/nav/course.png" alt="" /></span>課程</button>
+    <button class="nav-btn" data-view="calendar" type="button"><span class="ico"><img class="nav-ico" src="./icons/nav/calendar.png" alt="" /></span>日曆</button>
+    <button class="nav-btn" data-view="more" type="button"><span class="ico"><img class="nav-ico" src="./icons/nav/more.png" alt="" /></span>更多</button>
   </div>
 </nav>
 
@@ -713,7 +771,7 @@ select {
   <div class="modal" id="modal"></div>
 </div>
 <div class="toast" id="toast"></div>
-<div class="celeb" id="celeb"><div class="celeb-burst">🎉</div></div>
+<div class="celeb" id="celeb"><div class="celeb-burst"><img src="./icons/ui/trophy.png" alt="" /></div></div>
 
 
 <script>
@@ -725,6 +783,74 @@ select {
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2ZnBvYWlwcWtxeHp1YXFqdXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwNDMzNDIsImV4cCI6MjEwNzYxOTM0Mn0.zPmiuQPPA61QLdbJzkAAnUIkCEtKlFhdlEPiomVuJDY';
   const TZ = 'Asia/Hong_Kong';
   const MAX_TODAY = 5;
+
+  /* Soft pastel theme colors (exactly 10) — muted for dark #131f24 */
+  const COLOR_PALETTE = [
+    { id: 'rose',     label: '塵玫瑰', accent: '#C9A4A8', soft: 'rgba(201,164,168,.22)' },
+    { id: 'sage',     label: '鼠尾草', accent: '#A8B89A', soft: 'rgba(168,184,154,.22)' },
+    { id: 'mist',     label: '霧藍',   accent: '#9BB0C4', soft: 'rgba(155,176,196,.22)' },
+    { id: 'lavender', label: '灰薰衣草', accent: '#B0A8BE', soft: 'rgba(176,168,190,.22)' },
+    { id: 'sand',     label: '暖沙',   accent: '#C4B59A', soft: 'rgba(196,181,154,.22)' },
+    { id: 'teal',     label: '霧青',   accent: '#8FB0A8', soft: 'rgba(143,176,168,.22)' },
+    { id: 'peach',    label: '柔桃',   accent: '#D4B0A0', soft: 'rgba(212,176,160,.22)' },
+    { id: 'lilac',    label: '石板紫', accent: '#A8A0B8', soft: 'rgba(168,160,184,.22)' },
+    { id: 'mint',     label: '淡薄荷', accent: '#A0C4B0', soft: 'rgba(160,196,176,.22)' },
+    { id: 'apricot',  label: '柔杏',   accent: '#D4B898', soft: 'rgba(212,184,152,.22)' }
+  ];
+  const COLOR_BY_ID = Object.fromEntries(COLOR_PALETTE.map(c => [c.id, c]));
+  const KIND_DEFAULT_COLOR = { academy: 'mist', ai_terms: 'lilac', daily_review: 'sage' };
+
+  function colorMeta(id) {
+    if (!id) return null;
+    return COLOR_BY_ID[id] || null;
+  }
+  function resolveTaskColor(task) {
+    if (task && task.color && COLOR_BY_ID[task.color]) return task.color;
+    if (task && task.goal_id) {
+      const g = state.goals.find(x => x.id === task.goal_id);
+      if (g && g.color && COLOR_BY_ID[g.color]) return g.color;
+      if (g && g.kind && KIND_DEFAULT_COLOR[g.kind]) return KIND_DEFAULT_COLOR[g.kind];
+    }
+    return null;
+  }
+  function themeStyle(colorId) {
+    const m = colorMeta(colorId);
+    if (!m) return '';
+    return `style="--theme-accent:${m.accent};--theme-soft:${m.soft}"`;
+  }
+  function colorSwatchesHTML(selected, name) {
+    const sel = selected || '';
+    const noneSel = !sel ? ' selected' : '';
+    let h = `<div class="color-swatches" data-color-group="${name || 'color'}">`;
+    h += `<button type="button" class="color-swatch none${noneSel}" data-color="" title="預設" aria-label="預設"></button>`;
+    for (const c of COLOR_PALETTE) {
+      const on = sel === c.id ? ' selected' : '';
+      h += `<button type="button" class="color-swatch${on}" data-color="${c.id}" title="${c.label}" aria-label="${c.label}" style="background:${c.accent};color:${c.accent}"></button>`;
+    }
+    h += '</div>';
+    return h;
+  }
+  function bindColorSwatches(root, onChange) {
+    const box = typeof root === 'string' ? document.querySelector(root) : root;
+    if (!box) return;
+    box.querySelectorAll('.color-swatch').forEach(btn => {
+      btn.onclick = () => {
+        box.querySelectorAll('.color-swatch').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        if (onChange) onChange(btn.getAttribute('data-color') || null);
+      };
+    });
+  }
+  function selectedColorFrom(root) {
+    const box = typeof root === 'string' ? document.querySelector(root) : root;
+    if (!box) return null;
+    const sel = box.querySelector('.color-swatch.selected');
+    return sel ? (sel.getAttribute('data-color') || null) : null;
+  }
+  function ico(src, cls) {
+    return `<img class="${cls || 'ui-ico'}" src="${src}" alt="" />`;
+  }
+
   const OLD_KEY = 'bobo-pos-v1';
   const MIGRATED_KEY = 'bobo-pos-migrated-v2';
   const THEME_KEY = 'bobo-pos-theme';
@@ -866,12 +992,16 @@ select {
     const dark = theme === 'dark';
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
     const meta = document.getElementById('themeColorMeta');
-    if (meta) meta.setAttribute('content', dark ? '#121212' : '#58CC02');
+    if (meta) meta.setAttribute('content', dark ? '#131f24' : '#58CC02');
     localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
     const sw = document.getElementById('themeSwitch');
     const btn = document.getElementById('themeToggle');
     if (sw) { sw.classList.toggle('on', dark); sw.setAttribute('aria-checked', dark ? 'true' : 'false'); }
-    if (btn) btn.textContent = dark ? '☀️' : '🌙';
+    const img = document.getElementById('themeToggleImg');
+    if (img) img.src = dark ? './icons/ui/sun.png' : './icons/ui/moon.png';
+    if (btn && !img) btn.innerHTML = dark
+      ? '<img src="./icons/ui/sun.png" alt="" />'
+      : '<img src="./icons/ui/moon.png" alt="" />';
   }
   function applyMute(isMuted) {
     localStorage.setItem(MUTE_KEY, isMuted ? '1' : '0');
@@ -879,7 +1009,9 @@ select {
     const sw = document.getElementById('soundSwitch');
     const hint = document.getElementById('muteHintText');
     if (btn) {
-      btn.textContent = isMuted ? '🔇' : '🔊';
+      btn.innerHTML = isMuted
+        ? '<img src="./icons/ui/mute.png" alt="" />'
+        : '<img src="./icons/ui/speaker.png" alt="" />';
       btn.classList.toggle('muted', isMuted);
       btn.setAttribute('aria-pressed', isMuted ? 'true' : 'false');
     }
@@ -905,7 +1037,7 @@ select {
     const box = document.getElementById('authError');
     const code = (err && (err.code || err.error_code)) || '';
     const msg = (err && err.message) || String(err);
-    let html = '<h2>⚠️ 未能登入雲端</h2>';
+    let html = '<h2>未能登入雲端</h2>';
     if (code === 'anonymous_provider_disabled' || /anonymous/i.test(msg)) {
       html += '<p>Supabase 嘅 <strong>Anonymous</strong> 登入未開啟，所以進度冇辦法寫入真正 database。</p>';
       html += '<ol><li>打開 Supabase Dashboard → Authentication → Providers</li>';
@@ -986,7 +1118,7 @@ select {
     // daily terms
     await ensureDailyTerms(dailyRes.data);
 
-    applyTheme(state.profile?.theme || localStorage.getItem(THEME_KEY) || 'light');
+    applyTheme(state.profile?.theme || localStorage.getItem(THEME_KEY) || 'dark');
     applyMute(!!(state.profile?.muted ?? (localStorage.getItem(MUTE_KEY) === '1')));
   }
 
@@ -1045,9 +1177,28 @@ select {
             goal_step_id: t.goal_step_id,
             action_page: t.action_page,
             is_default: false,
-            sort_order: 90
+            sort_order: 90,
+            color: t.color || null
           });
         }
+      }
+    }
+  }
+
+
+  async function ensureGoalColors() {
+    const updates = [];
+    for (const g of state.goals) {
+      if (g.color) continue;
+      const def = KIND_DEFAULT_COLOR[g.kind];
+      if (!def) continue;
+      updates.push({ id: g.id, color: def });
+    }
+    for (const u of updates) {
+      const { error } = await sb.from('pos_goals').update({ color: u.color }).eq('id', u.id);
+      if (!error) {
+        const g = state.goals.find(x => x.id === u.id);
+        if (g) g.color = u.color;
       }
     }
   }
@@ -1066,13 +1217,15 @@ select {
     if (gTerms && !has('ai_terms')) {
       inserts.push({
         user_id: uid(), day, title: '每日五條 AI Terms', detail: '去頁面學今日 5 個詞，學完會自動勾任務。',
-        status: 'open', goal_id: gTerms.id, action_page: 'ai_terms', is_default: true, sort_order: 1
+        status: 'open', goal_id: gTerms.id, action_page: 'ai_terms', is_default: true, sort_order: 1,
+        color: gTerms.color || KIND_DEFAULT_COLOR.ai_terms || null
       });
     }
     if (gReview && !has('daily_review')) {
       inserts.push({
         user_id: uid(), day, title: '每日回顧', detail: '收工 5 分鐘：完成、卡住、聽日第一件。',
-        status: 'open', goal_id: gReview.id, action_page: 'daily_review', is_default: true, sort_order: 2
+        status: 'open', goal_id: gReview.id, action_page: 'daily_review', is_default: true, sort_order: 2,
+        color: gReview.color || KIND_DEFAULT_COLOR.daily_review || null
       });
     }
 
@@ -1087,7 +1240,8 @@ select {
           title: '讀 Claude Academy：' + next.title,
           detail: '完成後會自動更新課程目標進度。',
           status: 'open', goal_id: gAcademy.id, goal_step_id: next.id,
-          action_page: 'academy', is_default: true, sort_order: 3
+          action_page: 'academy', is_default: true, sort_order: 3,
+          color: gAcademy.color || KIND_DEFAULT_COLOR.academy || null
         });
       }
     }
@@ -1150,14 +1304,17 @@ select {
 
     const list = document.getElementById('todayTaskList');
     if (!tasks.length) {
-      list.innerHTML = '<div class="empty"><div class="emoji">☀️</div><h3>今日未有任務</h3><p>預設任務會自動出現；你亦可以自己加。</p></div>';
+      list.innerHTML = '<div class="empty"><img class="empty-ico" src="./icons/ui/sun.png" alt="" /><h3>今日未有任務</h3><p>預設任務會自動出現；你亦可以自己加。</p></div>';
     } else {
       list.innerHTML = tasks.map(t => {
         const isDone = t.status === 'done';
+        const colorId = resolveTaskColor(t);
+        const tint = colorId ? ' theme-tint' : '';
         const goto = t.action_page && t.action_page !== 'none'
           ? `<button type="button" class="task-goto" data-goto="${esc(t.action_page)}">去頁面 →</button>` : '';
-        return `<div class="task ${isDone ? 'done' : ''}" data-task="${t.id}">
-          <button type="button" class="check" data-toggle="${t.id}" aria-label="完成">${isDone ? '✓' : ''}</button>
+        const checkInner = isDone ? '<img src="./icons/ui/check.png" alt="" />' : '';
+        return `<div class="task ${isDone ? 'done' : ''}${tint}" data-task="${t.id}" ${themeStyle(colorId)}>
+          <button type="button" class="check" data-toggle="${t.id}" aria-label="完成">${checkInner}</button>
           <div class="task-body" data-detail="${t.id}">
             <div class="task-title">${esc(t.title)}</div>
             <div class="task-meta">
@@ -1185,8 +1342,8 @@ select {
     box.innerHTML = state.captures.map(c => `
       <div class="inbox-item" data-cap="${c.id}">
         <p>${esc(c.body)}</p>
-        <button type="button" class="icon-btn" data-cap-today="${c.id}" title="變今日任務">✅</button>
-        <button type="button" class="icon-btn" data-cap-dismiss="${c.id}" title="刪除">🗑️</button>
+        <button type="button" class="icon-btn" data-cap-today="${c.id}" title="變今日任務"><img src="./icons/ui/check.png" alt="" /></button>
+        <button type="button" class="icon-btn" data-cap-dismiss="${c.id}" title="刪除"><img src="./icons/ui/trash.png" alt="" /></button>
       </div>`).join('');
   }
 
@@ -1215,9 +1372,11 @@ select {
       }
       const tag = g.track === 'main' ? 'track-main' : isHabit ? 'track-habit' : 'track-side';
       const tagLabel = g.track === 'main' ? '主線' : isHabit ? '習慣' : '支線';
-      return `<div class="card goal-card" data-goal="${g.id}">
+      const colorId = (g.color && COLOR_BY_ID[g.color]) ? g.color : (KIND_DEFAULT_COLOR[g.kind] || null);
+      const tint = colorId ? ' theme-tint' : '';
+      return `<div class="card goal-card${tint}" data-goal="${g.id}" ${themeStyle(colorId)}>
         <span class="track-tag ${tag}">${tagLabel}${g.is_system ? ' · 系統' : ''}${isHabit ? ' · ' + esc(month.label) : ''}</span>
-        <strong style="font-size:16px;display:block">${esc(g.title)}</strong>
+        <strong style="font-size:16px;display:block">${colorId ? '<span class="color-dot"></span>' : ''}${esc(g.title)}</strong>
         <p class="hint">${esc(g.description || '')}</p>
         <div class="progress-wrap">
           <div class="progress-bar"><i style="width:${barW}%"></i></div>
@@ -1254,7 +1413,7 @@ select {
     const checkpoints = [10, 20, 30, 40, 50, 60, 67];
     const box = document.getElementById('milestoneList');
     if (!steps.length) {
-      box.innerHTML = '<div class="empty"><div class="emoji">🏆</div><h3>未有里程碑</h3><p>完成 bootstrap 之後會出現 Academy checkpoints。</p></div>';
+      box.innerHTML = '<div class="empty"><img class="empty-ico" src="./icons/ui/trophy.png" alt="" /><h3>未有里程碑</h3><p>完成 bootstrap 之後會出現 Academy checkpoints。</p></div>';
       return;
     }
     box.innerHTML = checkpoints.map(n => {
@@ -1264,7 +1423,7 @@ select {
       const allUpTo = steps.filter(s => s.step_index <= n).every(s => s.done);
       const ok = allUpTo;
       return `<div class="milestone ${ok ? 'achieved' : ''}">
-        <div class="ms-icon">${ok ? '🏅' : '🎯'}</div>
+        <div class="ms-icon"><img src="${ok ? './icons/ui/medal.png' : './icons/ui/target.png'}" alt="" /></div>
         <div class="ms-body">
           <div class="ms-title">Academy 第 ${n} 課關卡</div>
           <div class="ms-meta">${ok ? '已達成' : '未完成 · 完成第 ' + n + ' 課及之前全部'}</div>
@@ -1306,7 +1465,7 @@ select {
   async function renderLearnedPanel() {
     const panel = document.getElementById('termsLearnedPanel');
     if (!state.learned.length) {
-      panel.innerHTML = '<div class="empty"><div class="emoji">📚</div><h3>未有已學詞</h3><p>喺「今日五條」撳已學就會累積喺度。</p></div>';
+      panel.innerHTML = '<div class="empty"><img class="empty-ico" src="./icons/nav/course.png" alt="" /><h3>未有已學詞</h3><p>喺「今日五條」撳已學就會累積喺度。</p></div>';
       return;
     }
     const ids = state.learned.map(l => l.term_id);
@@ -1554,20 +1713,25 @@ select {
         return `<div class="asset-row" data-asset="${a.id}">
           <img class="asset-thumb" src="${esc(a.url)}" alt="" />
           <a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.label || '圖片')}</a>
-          <button type="button" class="icon-btn" data-del-asset="${a.id}">🗑️</button>
+          <button type="button" class="icon-btn" data-del-asset="${a.id}"><img src="./icons/ui/trash.png" alt="" /></button>
         </div>`;
       }
       return `<div class="asset-row" data-asset="${a.id}">
-        <span>🔗</span>
+        <img class="ui-ico sm" src="./icons/ui/link.png" alt="" />
         <a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.label || a.url)}</a>
-        <button type="button" class="icon-btn" data-del-asset="${a.id}">🗑️</button>
+        <button type="button" class="icon-btn" data-del-asset="${a.id}"><img src="./icons/ui/trash.png" alt="" /></button>
       </div>`;
     }).join('') || '<p class="hint">未有附件</p>';
 
+    const curColor = t.color || resolveTaskColor(t) || '';
     openModal(`
       <h2>任務詳情</h2>
       <div class="field"><label>標題</label><input id="tdTitle" value="${esc(t.title)}" /></div>
       <div class="field"><label>說明</label><textarea id="tdDetail">${esc(t.detail || '')}</textarea></div>
+      <div class="field"><label>卡片顏色</label>
+        ${colorSwatchesHTML(curColor, 'tdColor')}
+        <p class="hint">有連目標時預設跟目標色，可覆寫</p>
+      </div>
       <div class="section-title"><span>連結 / 圖片</span></div>
       <div id="tdAssets">${assetHtml}</div>
       <div class="field"><label>加連結</label>
@@ -1586,13 +1750,15 @@ select {
       </div>
     `);
 
+    bindColorSwatches('#modal [data-color-group="tdColor"]');
     document.getElementById('tdClose').onclick = () => { sfxClick(); closeModal(); };
     document.getElementById('tdSave').onclick = async () => {
       const title = document.getElementById('tdTitle').value.trim();
       const detail = document.getElementById('tdDetail').value.trim();
-      const { error } = await sb.from('pos_tasks').update({ title, detail }).eq('id', taskId);
+      const color = selectedColorFrom('#modal [data-color-group="tdColor"]');
+      const { error } = await sb.from('pos_tasks').update({ title, detail, color }).eq('id', taskId);
       if (error) return toast(error.message);
-      t.title = title; t.detail = detail;
+      t.title = title; t.detail = detail; t.color = color;
       sfxDone(); closeModal(); renderToday(); toast('已儲存');
     };
     document.getElementById('tdAddLink').onclick = async () => {
@@ -1638,33 +1804,63 @@ select {
     if (openTodayCount() >= MAX_TODAY) return toast('今日最多 5 件未完成');
     const gAcademy = goalByKind('academy');
     const steps = gAcademy ? (state.stepsByGoal[gAcademy.id] || []).filter(s => !s.done).slice(0, 20) : [];
+    const goalOpts = state.goals.map(g => {
+      const c = g.color || KIND_DEFAULT_COLOR[g.kind] || '';
+      return `<option value="${g.id}" data-color="${c}">${esc(g.title)}</option>`;
+    }).join('');
     openModal(`
       <h2>加今日任務</h2>
       <div class="field"><label>標題</label><input id="atTitle" placeholder="今日要做咩…" /></div>
       <div class="field"><label>說明（可選）</label><textarea id="atDetail"></textarea></div>
+      <div class="field"><label>連結目標（可選）</label>
+        <select id="atGoal">
+          <option value="">— 唔連結 —</option>
+          ${goalOpts}
+        </select>
+      </div>
       <div class="field"><label>連結到 Academy 課（可選）</label>
         <select id="atStep">
           <option value="">— 唔連結 —</option>
           ${steps.map(s => `<option value="${s.id}">${esc(s.title)}</option>`).join('')}
         </select>
       </div>
+      <div class="field"><label>卡片顏色</label>
+        ${colorSwatchesHTML('', 'atColor')}
+        <p class="hint">揀目標後會跟目標色；可再改</p>
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" id="atClose">取消</button>
         <button type="button" class="btn btn-primary" id="atSave">加入</button>
       </div>
     `);
+    bindColorSwatches('#modal [data-color-group="atColor"]');
+    const syncColorFromGoal = () => {
+      const sel = document.getElementById('atGoal');
+      const opt = sel.options[sel.selectedIndex];
+      const c = opt && opt.getAttribute('data-color');
+      const box = document.querySelector('#modal [data-color-group="atColor"]');
+      if (!box) return;
+      box.querySelectorAll('.color-swatch').forEach(b => {
+        b.classList.toggle('selected', (b.getAttribute('data-color') || '') === (c || ''));
+      });
+    };
+    document.getElementById('atGoal').onchange = syncColorFromGoal;
     document.getElementById('atClose').onclick = () => { sfxClick(); closeModal(); };
     document.getElementById('atSave').onclick = async () => {
       const title = document.getElementById('atTitle').value.trim();
       if (!title) return toast('請填標題');
       const detail = document.getElementById('atDetail').value.trim();
       const stepId = document.getElementById('atStep').value || null;
+      let goalId = document.getElementById('atGoal').value || null;
+      if (stepId && gAcademy) goalId = gAcademy.id;
+      const color = selectedColorFrom('#modal [data-color-group="atColor"]');
       const row = {
         user_id: uid(), day: todayStr(), title, detail, status: 'open',
-        goal_id: stepId && gAcademy ? gAcademy.id : null,
+        goal_id: goalId,
         goal_step_id: stepId,
         action_page: stepId ? 'academy' : null,
-        is_default: false, sort_order: 50
+        is_default: false, sort_order: 50,
+        color: color || null
       };
       const { data, error } = await sb.from('pos_tasks').insert(row).select().single();
       if (error) return toast(error.message);
@@ -1686,15 +1882,20 @@ select {
         </select>
       </div>
       <div class="field"><label>總進度（例如 10）</label><input id="agTotal" type="number" min="0" value="10" /></div>
+      <div class="field"><label>主題色</label>
+        ${colorSwatchesHTML('mist', 'agColor')}
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" id="agClose">取消</button>
         <button type="button" class="btn btn-primary" id="agSave">加入</button>
       </div>
     `);
+    bindColorSwatches('#modal [data-color-group="agColor"]');
     document.getElementById('agClose').onclick = () => { sfxClick(); closeModal(); };
     document.getElementById('agSave').onclick = async () => {
       const title = document.getElementById('agTitle').value.trim();
       if (!title) return toast('請填標題');
+      const color = selectedColorFrom('#modal [data-color-group="agColor"]');
       const row = {
         user_id: uid(), title,
         description: document.getElementById('agDesc').value.trim(),
@@ -1702,12 +1903,44 @@ select {
         kind: 'custom',
         progress_current: 0,
         progress_total: Number(document.getElementById('agTotal').value) || 0,
-        is_system: false, sort_order: 50
+        is_system: false, sort_order: 50,
+        color: color || null
       };
       const { data, error } = await sb.from('pos_goals').insert(row).select().single();
       if (error) return toast(error.message);
       state.goals.push(data);
       sfxDone(); closeModal(); renderGoals();
+    };
+  }
+
+  function openGoalEdit(goalId) {
+    const g = state.goals.find(x => x.id === goalId);
+    if (!g) return;
+    const cur = g.color || KIND_DEFAULT_COLOR[g.kind] || '';
+    openModal(`
+      <h2>編輯目標</h2>
+      <div class="field"><label>標題</label><input id="egTitle" value="${esc(g.title)}" /></div>
+      <div class="field"><label>說明</label><textarea id="egDesc">${esc(g.description || '')}</textarea></div>
+      <div class="field"><label>主題色</label>
+        ${colorSwatchesHTML(cur, 'egColor')}
+        <p class="hint">今日任務若未自訂色，會跟呢個色</p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="egClose">關閉</button>
+        <button type="button" class="btn btn-primary" id="egSave">儲存</button>
+      </div>
+    `);
+    bindColorSwatches('#modal [data-color-group="egColor"]');
+    document.getElementById('egClose').onclick = () => { sfxClick(); closeModal(); };
+    document.getElementById('egSave').onclick = async () => {
+      const title = document.getElementById('egTitle').value.trim();
+      if (!title) return toast('請填標題');
+      const description = document.getElementById('egDesc').value.trim();
+      const color = selectedColorFrom('#modal [data-color-group="egColor"]');
+      const { error } = await sb.from('pos_goals').update({ title, description, color }).eq('id', goalId);
+      if (error) return toast(error.message);
+      g.title = title; g.description = description; g.color = color;
+      sfxDone(); closeModal(); renderGoals(); renderToday(); toast('已儲存');
     };
   }
 
@@ -1821,12 +2054,12 @@ select {
 
     document.getElementById('themeToggle').onclick = async () => {
       sfxClick();
-      const next = (state.profile?.theme || localStorage.getItem(THEME_KEY) || 'light') === 'dark' ? 'light' : 'dark';
+      const next = (state.profile?.theme || localStorage.getItem(THEME_KEY) || 'dark') === 'dark' ? 'light' : 'dark';
       await setTheme(next);
     };
     document.getElementById('themeSwitch').onclick = async () => {
       sfxClick();
-      const next = (state.profile?.theme || 'light') === 'dark' ? 'light' : 'dark';
+      const next = (state.profile?.theme || localStorage.getItem(THEME_KEY) || 'dark') === 'dark' ? 'light' : 'dark';
       await setTheme(next);
     };
     document.getElementById('muteToggle').onclick = async () => {
@@ -1851,6 +2084,7 @@ select {
       try {
         await loadAll();
         await ensureTodayDefaults();
+      await ensureGoalColors();
         renderAll();
         setSyncBadge('synced', '已連線 · 真表後端');
         toast('已重新載入');
@@ -1963,15 +2197,17 @@ select {
     document.getElementById('goalsSide').addEventListener('click', goalNav);
     document.getElementById('goalsHabit').addEventListener('click', goalNav);
     function goalNav(e) {
-      if (e.target.closest('[data-open-course]')) { sfxClick(); showView('course'); }
-      if (e.target.closest('[data-open-terms]')) { sfxClick(); showView('terms'); }
-      if (e.target.closest('[data-open-review]')) { sfxClick(); showView('review'); }
+      if (e.target.closest('[data-open-course]')) { sfxClick(); showView('course'); return; }
+      if (e.target.closest('[data-open-terms]')) { sfxClick(); showView('terms'); return; }
+      if (e.target.closest('[data-open-review]')) { sfxClick(); showView('review'); return; }
+      const card = e.target.closest('[data-goal]');
+      if (card) { sfxClick(); openGoalEdit(card.getAttribute('data-goal')); }
     }
   }
 
   /* ---------- boot ---------- */
   async function boot() {
-    applyTheme(localStorage.getItem(THEME_KEY) || 'light');
+    applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
     applyMute(localStorage.getItem(MUTE_KEY) === '1');
     bindEvents();
 

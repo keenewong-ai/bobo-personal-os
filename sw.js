@@ -1,12 +1,35 @@
 /* BoBo Personal OS — minimal offline shell SW */
-const CACHE = 'bobo-pos-shell-v6';
+const CACHE = 'bobo-pos-shell-v7';
 const PRECACHE = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/apple-touch-icon.png'
+  './icons/apple-touch-icon.png',
+  './icons/nav/calendar.png',
+  './icons/nav/course.png',
+  './icons/nav/goals.png',
+  './icons/nav/more.png',
+  './icons/nav/today.png',
+  './icons/ui/back.png',
+  './icons/ui/brain.png',
+  './icons/ui/check.png',
+  './icons/ui/chev-left.png',
+  './icons/ui/chev-right.png',
+  './icons/ui/fire.png',
+  './icons/ui/gear.png',
+  './icons/ui/inbox.png',
+  './icons/ui/link.png',
+  './icons/ui/medal.png',
+  './icons/ui/moon.png',
+  './icons/ui/mute.png',
+  './icons/ui/plus.png',
+  './icons/ui/speaker.png',
+  './icons/ui/sun.png',
+  './icons/ui/target.png',
+  './icons/ui/trash.png',
+  './icons/ui/trophy.png'
 ];
 
 self.addEventListener('install', (event) => {
