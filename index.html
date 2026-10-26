@@ -501,7 +501,7 @@ select {
     <div id="goalsMain"></div>
     <div class="section-title"><span>支線</span><span>Side</span></div>
     <div id="goalsSide"></div>
-    <div class="section-title goals-habit"><span>習慣</span><span>Habit</span></div>
+    <div class="section-title goals-habit"><span>習慣</span><span id="goalsHabitMonth">本月</span></div>
     <div id="goalsHabit"></div>
     <button class="btn btn-secondary btn-block" id="btnAddGoal" type="button">＋ 加目標</button>
   </section>
@@ -719,6 +719,7 @@ select {
     termDefs: {},
     learned: [],
     reviews: [],
+    monthHabitTasks: [],
     reviewMood: null,
     calMonth: null,
     selectedDay: null,
@@ -744,6 +745,45 @@ select {
     const d = new Date(iso + 'T12:00:00Z');
     d.setUTCDate(d.getUTCDate() + n);
     return d.toISOString().slice(0, 10);
+  }
+  function currentMonthRange() {
+    const day = todayStr();
+    const [y, m] = day.split('-').map(Number);
+    const start = `${y}-${String(m).padStart(2, '0')}-01`;
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const end = `${y}-${String(m).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+    const label = new Intl.DateTimeFormat('zh-HK', { timeZone: TZ, year: 'numeric', month: 'long' }).format(new Date(day + 'T12:00:00'));
+    return { y, m, start, end, daysInMonth, label };
+  }
+  function inMonth(iso, start, end) {
+    return !!(iso && iso >= start && iso <= end);
+  }
+  function habitMonthStats(g) {
+    const { start, end, daysInMonth, label } = currentMonthRange();
+    const days = new Set();
+    const add = (iso) => { if (inMonth(iso, start, end)) days.add(iso); };
+    (state.monthHabitTasks || []).forEach(t => {
+      if (t.goal_id === g.id && t.status === 'done') add(t.day);
+    });
+    (state.tasks || []).forEach(t => {
+      if (t.goal_id === g.id && t.status === 'done') add(t.day);
+    });
+    if (g.kind === 'ai_terms') {
+      (state.learned || []).forEach(l => add(l.day));
+    }
+    if (g.kind === 'daily_review') {
+      (state.reviews || []).forEach(r => add(r.day));
+    }
+    const taskIds = new Set([
+      ...(state.monthHabitTasks || []).filter(t => t.goal_id === g.id).map(t => t.id),
+      ...(state.tasks || []).filter(t => t.goal_id === g.id).map(t => t.id)
+    ]);
+    (state.completions || []).forEach(c => {
+      if (c.ref_task_id && taskIds.has(c.ref_task_id)) add(c.day);
+    });
+    const doneDays = days.size;
+    const pct = daysInMonth > 0 ? Math.round(doneDays / daysInMonth * 100) : 0;
+    return { doneDays, daysInMonth, pct, label, start, end };
   }
   function uid() { return state.user && state.user.id; }
   function goalByKind(kind) { return state.goals.find(g => g.kind === kind && g.is_system); }
@@ -862,9 +902,11 @@ select {
   async function loadAll() {
     const day = todayStr();
     const uidv = uid();
+    const month = currentMonthRange();
+    const reviewFrom = addDays(month.start, -7);
     const [
       profileRes, goalsRes, stepsRes, tasksRes, capturesRes,
-      streaksRes, compsRes, learnedRes, reviewsRes, dailyRes
+      streaksRes, compsRes, learnedRes, reviewsRes, dailyRes, monthTasksRes
     ] = await Promise.all([
       sb.from('pos_profiles').select('*').eq('user_id', uidv).maybeSingle(),
       sb.from('pos_goals').select('*').eq('user_id', uidv).eq('archived', false).order('sort_order'),
@@ -874,11 +916,12 @@ select {
       sb.from('pos_streaks').select('*').eq('user_id', uidv).order('day', { ascending: false }).limit(400),
       sb.from('pos_completions').select('*').eq('user_id', uidv).order('occurred_at', { ascending: false }).limit(500),
       sb.from('pos_ai_term_progress').select('*').eq('user_id', uidv).order('learned_at', { ascending: false }),
-      sb.from('pos_reviews').select('*').eq('user_id', uidv).order('day', { ascending: false }).limit(14),
-      sb.from('pos_ai_term_daily').select('*').eq('user_id', uidv).eq('day', day).maybeSingle()
+      sb.from('pos_reviews').select('*').eq('user_id', uidv).gte('day', reviewFrom).order('day', { ascending: false }).limit(62),
+      sb.from('pos_ai_term_daily').select('*').eq('user_id', uidv).eq('day', day).maybeSingle(),
+      sb.from('pos_tasks').select('id,day,status,goal_id,action_page,title').eq('user_id', uidv).eq('status', 'done').gte('day', month.start).lte('day', month.end).not('goal_id', 'is', null)
     ]);
 
-    const firstErr = [profileRes, goalsRes, stepsRes, tasksRes, capturesRes, streaksRes, compsRes, learnedRes, reviewsRes, dailyRes]
+    const firstErr = [profileRes, goalsRes, stepsRes, tasksRes, capturesRes, streaksRes, compsRes, learnedRes, reviewsRes, dailyRes, monthTasksRes]
       .map(r => r.error).find(Boolean);
     if (firstErr) throw firstErr;
 
@@ -894,6 +937,7 @@ select {
     state.completions = compsRes.data || [];
     state.learned = learnedRes.data || [];
     state.reviews = reviewsRes.data || [];
+    state.monthHabitTasks = monthTasksRes.data || [];
 
     // assets for today's tasks
     const taskIds = state.tasks.map(t => t.id);
@@ -1115,21 +1159,35 @@ select {
   function renderGoals() {
     const tracks = { main: [], side: [], habit: [] };
     state.goals.forEach(g => { (tracks[g.track] || tracks.side).push(g); });
+    const month = currentMonthRange();
+    const monthEl = document.getElementById('goalsHabitMonth');
+    if (monthEl) monthEl.textContent = month.label;
     function card(g) {
-      const total = g.progress_total || 0;
-      const cur = g.progress_current || 0;
-      const pct = total > 0 ? Math.round(cur / total * 100) : (g.kind === 'ai_terms' || g.kind === 'daily_review' ? Math.min(100, cur) : 0);
-      const barW = total > 0 ? pct : (cur > 0 ? Math.min(100, cur) : 0);
-      const tag = g.track === 'main' ? 'track-main' : g.track === 'habit' ? 'track-habit' : 'track-side';
-      const tagLabel = g.track === 'main' ? '主線' : g.track === 'habit' ? '習慣' : '支線';
-      const sub = total > 0 ? `${cur} / ${total}` : (g.kind === 'ai_terms' ? `已學日數累積：睇 Terms 頁` : g.kind === 'daily_review' ? '每日收工回顧' : `${cur}`);
+      const isHabit = g.track === 'habit';
+      let cur, total, pct, barW, sub;
+      if (isHabit) {
+        const stats = habitMonthStats(g);
+        cur = stats.doneDays;
+        total = stats.daysInMonth;
+        pct = stats.pct;
+        barW = pct;
+        sub = `本月 ${cur} / ${total} 日`;
+      } else {
+        total = g.progress_total || 0;
+        cur = g.progress_current || 0;
+        pct = total > 0 ? Math.round(cur / total * 100) : 0;
+        barW = total > 0 ? pct : (cur > 0 ? Math.min(100, cur) : 0);
+        sub = total > 0 ? `${cur} / ${total}` : `${cur}`;
+      }
+      const tag = g.track === 'main' ? 'track-main' : isHabit ? 'track-habit' : 'track-side';
+      const tagLabel = g.track === 'main' ? '主線' : isHabit ? '習慣' : '支線';
       return `<div class="card goal-card" data-goal="${g.id}">
-        <span class="track-tag ${tag}">${tagLabel}${g.is_system ? ' · 系統' : ''}</span>
+        <span class="track-tag ${tag}">${tagLabel}${g.is_system ? ' · 系統' : ''}${isHabit ? ' · ' + esc(month.label) : ''}</span>
         <strong style="font-size:16px;display:block">${esc(g.title)}</strong>
         <p class="hint">${esc(g.description || '')}</p>
         <div class="progress-wrap">
           <div class="progress-bar"><i style="width:${barW}%"></i></div>
-          <div class="progress-label"><span>${esc(sub)}</span><span>${total > 0 ? pct + '%' : ''}</span></div>
+          <div class="progress-label"><span>${esc(sub)}</span><span>${pct}%</span></div>
         </div>
         ${g.kind === 'academy' ? '<button type="button" class="btn btn-secondary btn-sm" data-open-course style="margin-top:8px">睇 67 課 →</button>' : ''}
         ${g.kind === 'ai_terms' ? '<button type="button" class="btn btn-secondary btn-sm" data-open-terms style="margin-top:8px">去 AI Terms →</button>' : ''}
@@ -1351,15 +1409,18 @@ select {
 
   async function refreshAfterTaskDone() {
     const uidv = uid();
-    const [streaksRes, compsRes, goalsRes, stepsRes] = await Promise.all([
+    const month = currentMonthRange();
+    const [streaksRes, compsRes, goalsRes, stepsRes, monthTasksRes] = await Promise.all([
       sb.from('pos_streaks').select('*').eq('user_id', uidv).order('day', { ascending: false }).limit(400),
       sb.from('pos_completions').select('*').eq('user_id', uidv).order('occurred_at', { ascending: false }).limit(500),
       sb.from('pos_goals').select('*').eq('user_id', uidv).eq('archived', false).order('sort_order'),
-      sb.from('pos_goal_steps').select('*').eq('user_id', uidv).order('step_index')
+      sb.from('pos_goal_steps').select('*').eq('user_id', uidv).order('step_index'),
+      sb.from('pos_tasks').select('id,day,status,goal_id,action_page,title').eq('user_id', uidv).eq('status', 'done').gte('day', month.start).lte('day', month.end).not('goal_id', 'is', null)
     ]);
     state.streaks = streaksRes.data || [];
     state.completions = compsRes.data || [];
     state.goals = goalsRes.data || [];
+    state.monthHabitTasks = monthTasksRes.data || [];
     state.stepsByGoal = {};
     (stepsRes.data || []).forEach(s => {
       (state.stepsByGoal[s.goal_id] || (state.stepsByGoal[s.goal_id] = [])).push(s);
