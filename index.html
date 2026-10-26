@@ -48,6 +48,7 @@ html { -webkit-tap-highlight-color: transparent; }
 body {
   font-family: var(--font); background: var(--bg); color: var(--gray-900);
   min-height: 100dvh; padding-bottom: calc(var(--nav-h) + var(--safe-b) + 72px); line-height: 1.45;
+  overflow-x: hidden;
 }
 button, input, textarea, select { font: inherit; color: inherit; }
 button { cursor: pointer; border: none; background: none; }
@@ -75,7 +76,7 @@ textarea { resize: vertical; min-height: 72px; }
   color: #B45F00; font-weight: 800; font-size: 14px; padding: 8px 12px;
   border-radius: 999px; border: 2px solid #FFD699;
 }
-main { max-width: 560px; margin: 0 auto; padding: 16px; }
+main { max-width: 560px; margin: 0 auto; padding: 16px; width: 100%; min-width: 0; overflow-x: hidden; }
 .view { display: none; animation: fadeIn .2s ease; }
 .view.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -193,14 +194,32 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 .ms-title { font-weight: 800; font-size: 15px; }
 .ms-meta { font-size: 12px; color: var(--gray-600); margin-top: 4px; }
 .ms-due.overdue { color: var(--red); font-weight: 700; }
-.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.cal-nav h2 { font-size: 17px; font-weight: 800; }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 10px; }
-.cal-dow { text-align: center; font-size: 11px; font-weight: 800; color: var(--gray-400); padding: 4px 0; }
+.cal-nav {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-bottom: 12px; width: 100%; min-width: 0;
+}
+.cal-nav h2 {
+  font-size: clamp(14px, 4.2vw, 17px); font-weight: 800; flex: 1; min-width: 0;
+  text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cal-nav .icon-btn {
+  width: 40px; height: 40px; flex-shrink: 0; font-size: 14px;
+}
+.cal-grid {
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px; margin-bottom: 10px; width: 100%; min-width: 0;
+}
+.cal-dow {
+  text-align: center; font-size: clamp(10px, 2.8vw, 11px); font-weight: 800;
+  color: var(--gray-400); padding: 4px 0; min-width: 0;
+}
 .cal-day {
-  aspect-ratio: 1; border-radius: 10px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+  aspect-ratio: 1; width: 100%; min-width: 0; min-height: 0;
+  border-radius: 10px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-size: clamp(11px, 3.2vw, 14px); font-weight: 700;
   color: var(--gray-800); border: 2px solid transparent;
+  padding: 4px 2px; box-sizing: border-box;
 }
 .cal-day.empty { visibility: hidden; }
 .cal-day.today { border-color: var(--blue); }
@@ -208,11 +227,21 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 .cal-day.streak-run { background: #C8F56A; color: var(--green-dark); }
 .cal-day.break-day { background: var(--gray-100); color: var(--gray-400); }
 .cal-day.selected { outline: 2px solid var(--green); outline-offset: 1px; }
-.cal-day .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green-dark); margin-top: 2px; }
-.timeline-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--gray-100); }
+.cal-day .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green-dark); margin-top: 2px; flex-shrink: 0; }
+#view-calendar { width: 100%; max-width: 100%; min-width: 0; overflow-x: hidden; }
+#dayDetail { width: 100%; max-width: 100%; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+.timeline-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--gray-100); min-width: 0; }
 .timeline-item:last-child { border-bottom: none; }
 .tl-time { width: 56px; flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--gray-600); padding-top: 2px; }
-.tl-body { flex: 1; font-weight: 700; font-size: 14px; }
+.tl-body { flex: 1; min-width: 0; font-weight: 700; font-size: 14px; overflow-wrap: anywhere; word-break: break-word; }
+@media (max-width: 400px) {
+  .cal-grid { gap: 2px; }
+  .cal-day { border-radius: 8px; border-width: 1.5px; padding: 2px 1px; }
+  .cal-day.selected { outline-width: 1.5px; outline-offset: 0; }
+  .cal-nav { margin-bottom: 8px; }
+  .tl-time { width: 48px; font-size: 11px; }
+  main { padding-left: 12px; padding-right: 12px; }
+}
 .capture-bar {
   position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + var(--safe-b));
   z-index: 45; padding: 8px 12px;
@@ -529,6 +558,7 @@ select {
   </section>
 
   <section id="view-milestones" class="view">
+    <button class="btn btn-ghost" type="button" data-back="more">← 返更多</button>
     <div class="section-title"><span>里程碑牆</span><span>Academy checkpoints</span></div>
     <div id="milestoneList"></div>
   </section>
@@ -543,9 +573,9 @@ select {
         <div class="ico">🌙</div>
         <div><strong>每日回顧</strong><span>5 分鐘收工：完成、卡住、聽日第一件</span></div>
       </button>
-      <button class="more-link" type="button" data-open="calendar">
-        <div class="ico">📅</div>
-        <div><strong>完成日曆</strong><span>睇返邊日有進度、連續同斷線</span></div>
+      <button class="more-link" type="button" data-open="milestones">
+        <div class="ico">🏆</div>
+        <div><strong>里程碑牆</strong><span>Academy checkpoints · 階段目標</span></div>
       </button>
       <button class="more-link" type="button" data-open="settings">
         <div class="ico">⚙️</div>
@@ -606,8 +636,8 @@ select {
   </section>
 
   <section id="view-calendar" class="view">
-    <button class="btn btn-ghost" type="button" data-back="more">← 返更多</button>
-    <div class="cal-nav" style="margin-top:8px">
+    <div class="section-title"><span>完成日曆</span><span>Calendar</span></div>
+    <div class="cal-nav">
       <button class="icon-btn" id="calPrev" type="button" aria-label="上月">◀</button>
       <h2 id="calMonthLabel"></h2>
       <button class="icon-btn" id="calNext" type="button" aria-label="下月">▶</button>
@@ -674,7 +704,7 @@ select {
     <button class="nav-btn active" data-view="today" type="button"><span class="ico">☀️</span>今日</button>
     <button class="nav-btn" data-view="goals" type="button"><span class="ico">🎯</span>目標</button>
     <button class="nav-btn" data-view="course" type="button"><span class="ico">📚</span>課程</button>
-    <button class="nav-btn" data-view="milestones" type="button"><span class="ico">🏆</span>里程碑</button>
+    <button class="nav-btn" data-view="calendar" type="button"><span class="ico">📅</span>日曆</button>
     <button class="nav-btn" data-view="more" type="button"><span class="ico">⋯</span>更多</button>
   </div>
 </nav>
@@ -1094,7 +1124,7 @@ select {
   function showView(name) {
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-    if (['terms', 'review', 'calendar', 'settings'].includes(name)) {
+    if (['terms', 'review', 'milestones', 'settings'].includes(name)) {
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     }
     if (name === 'terms') renderTerms();
