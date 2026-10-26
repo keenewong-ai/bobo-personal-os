@@ -15,6 +15,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
 <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png" />
 <title>BoBo Personal OS</title>
+<link rel="stylesheet" href="./vendor/uicons/css/uicons-regular-rounded.css" />
 <style>
 :root {
   --green: #58CC02; --green-dark: #46A302; --green-soft: #D7FFB8;
@@ -30,6 +31,7 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
   --font: "Noto Sans TC", "PingFang HK", "Microsoft JhengHei", system-ui, sans-serif;
   --ring-track: #E5E5E5;
+  --check-border: #6B7280;
 }
 [data-theme="dark"] {
   --green: #58CC02; --green-dark: #89E219; --green-soft: #1B3A24;
@@ -42,6 +44,7 @@
   --capture-fade: rgba(19,31,36,.95); --modal-scrim: rgba(0,0,0,.65);
   --shadow: 0 2px 0 rgba(0,0,0,.35); --shadow-lg: 0 8px 28px rgba(0,0,0,.5);
   --ring-track: #334850;
+  --check-border: #C5D0D5;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-tap-highlight-color: transparent; }
@@ -108,7 +111,8 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; width: 100%; min-width: 
 .task.sample { border-style: dashed; }
 .check {
   width: 28px; height: 28px; flex-shrink: 0; margin-top: 1px; border-radius: 50%;
-  border: 3px solid var(--gray-200); display: grid; place-items: center;
+  border: 4px solid var(--check-border); display: grid; place-items: center;
+  background: transparent; color: transparent;
 }
 .task.done .check { background: var(--green); border-color: var(--green); color: #fff; font-size: 14px; font-weight: 900; }
 .task-body { flex: 1; min-width: 0; }
@@ -186,10 +190,11 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; width: 100%; min-width: 
 }
 .milestone.achieved { border-color: var(--achieved-border); background: var(--achieved-bg); }
 .ms-icon {
-  width: 44px; height: 44px; border-radius: 14px; background: var(--orange-soft);
-  display: grid; place-items: center; font-size: 22px; flex-shrink: 0;
+  width: 40px; height: 40px; border-radius: 0; background: transparent;
+  display: grid; place-items: center; font-size: 26px; flex-shrink: 0;
+  color: var(--orange);
 }
-.milestone.achieved .ms-icon { background: var(--green-soft); }
+.milestone.achieved .ms-icon { background: transparent; color: var(--green); }
 .ms-body { flex: 1; min-width: 0; }
 .ms-title { font-weight: 800; font-size: 15px; }
 .ms-meta { font-size: 12px; color: var(--gray-600); margin-top: 4px; }
@@ -322,8 +327,8 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; width: 100%; min-width: 
   text-align: left; width: 100%;
 }
 .more-link .ico {
-  width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center;
-  font-size: 22px; background: var(--gray-50);
+  width: 40px; height: 40px; border-radius: 0; display: grid; place-items: center;
+  font-size: 24px; background: transparent; color: var(--gray-800);
 }
 .more-link strong { display: block; font-size: 15px; }
 .more-link span { font-size: 12px; color: var(--gray-600); }
@@ -457,36 +462,42 @@ select {
 .goals-habit { margin-top: 8px; }
 .track-habit { background: var(--blue-soft); color: #0A7EA4; }
 
-/* Duo soft-flat icons */
-.nav-ico, .ui-ico, .empty-ico, .brand-logo img, .more-link .ico img, .ms-icon img, .fire img, .celeb-burst img {
-  display: inline-block; vertical-align: middle; object-fit: contain;
+/* Flaticon Uicons regular-rounded line icons */
+i.fi {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: inherit; line-height: 1; font-style: normal; vertical-align: middle;
+  background: transparent !important; box-shadow: none !important;
 }
-.nav-ico { width: 28px; height: 28px; }
-.nav-btn .ico { display:flex; align-items:center; justify-content:center; line-height:0; }
-.nav-btn .ico .nav-ico { width: 26px; height: 26px; }
-.ui-ico { width: 22px; height: 22px; }
-.ui-ico.lg { width: 28px; height: 28px; }
-.ui-ico.sm { width: 18px; height: 18px; }
-.empty-ico { width: 48px; height: 48px; margin-bottom: 8px; }
-.brand-logo { width: 40px; height: 40px; display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:12px; background: var(--green-soft); }
-.brand-logo img { width: 34px; height: 34px; }
-.more-link .ico { width: 40px; height: 40px; display:flex; align-items:center; justify-content:center; }
-.more-link .ico img { width: 36px; height: 36px; }
-.theme-toggle, .mute-toggle { display:flex; align-items:center; justify-content:center; padding: 4px; }
-.theme-toggle img, .mute-toggle img { width: 28px; height: 28px; }
-.streak-pill .fire { display:inline-flex; align-items:center; }
-.streak-pill .fire img { width: 18px; height: 18px; }
+.nav-btn .ico { display:flex; align-items:center; justify-content:center; line-height:1; background:transparent; }
+.nav-btn .ico .fi { font-size: 24px; color: var(--gray-600); }
+.nav-btn.active .ico .fi { color: var(--green-dark); }
+.ui-ico { font-size: 20px; }
+.ui-ico.lg { font-size: 26px; }
+.ui-ico.sm { font-size: 16px; }
+.empty-ico { font-size: 42px; margin-bottom: 8px; color: var(--gray-400); display:inline-flex; }
+.brand-logo {
+  width: 40px; height: 40px; display:flex; align-items:center; justify-content:center;
+  overflow:hidden; border-radius:12px; background: var(--green-soft); color: var(--green-dark);
+}
+.brand-logo .fi { font-size: 22px; color: inherit; }
+.more-link .ico { width: 40px; height: 40px; display:flex; align-items:center; justify-content:center; background:transparent; }
+.more-link .ico .fi { font-size: 24px; }
+.theme-toggle, .mute-toggle { display:flex; align-items:center; justify-content:center; padding: 4px; color: var(--gray-800); }
+.theme-toggle .fi, .mute-toggle .fi { font-size: 24px; }
+.streak-pill .fire { display:inline-flex; align-items:center; color: var(--orange); }
+.streak-pill .fire .fi { font-size: 16px; }
 .check { display:flex; align-items:center; justify-content:center; padding:0; }
-/* task complete = CSS circle + ✓ (not Duo check.png) */
-.icon-btn img { width: 22px; height: 22px; }
-.cal-nav .icon-btn img { width: 24px; height: 24px; }
-.btn .ui-ico { margin-right: 4px; }
+/* task complete = CSS circle + ✓ (not icon font / PNG) */
+.icon-btn { color: var(--gray-600); }
+.icon-btn .fi { font-size: 20px; }
+.cal-nav .icon-btn .fi { font-size: 22px; }
+.btn .ui-ico, .btn .fi.ui-ico { margin-right: 4px; }
 .btn-ico-only { display:inline-flex; align-items:center; justify-content:center; min-width: 40px; padding: 6px; }
-.btn-ico-only img { width: 22px; height: 22px; margin:0; }
-.ms-icon { width: 40px; height: 40px; display:flex; align-items:center; justify-content:center; }
-.ms-icon img { width: 36px; height: 36px; }
-.celeb-burst img { width: 72px; height: 72px; }
-.back-ico { width: 18px; height: 18px; margin-right: 4px; vertical-align: -3px; }
+.btn-ico-only .fi { font-size: 20px; margin:0; }
+.ms-icon { width: 40px; height: 40px; display:flex; align-items:center; justify-content:center; background:transparent; }
+.ms-icon .fi { font-size: 26px; }
+.celeb-burst .fi { font-size: 64px; color: var(--orange); }
+.back-ico { font-size: 16px; margin-right: 4px; }
 
 /* Today task list display mode */
 .today-title-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin: 4px 0 10px; }
@@ -564,17 +575,17 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
 
 <header class="app-header">
   <div class="brand">
-    <div class="brand-logo"><img src="./icons/nav/today.png" alt="" class="nav-ico" /></div>
+    <div class="brand-logo"><i class="fi fi-rr-sunrise" aria-hidden="true"></i></div>
     <div>
       <h1>BoBo OS</h1>
       <p>睇到 · 做到 · 記得</p>
     </div>
   </div>
   <div class="header-actions">
-    <button class="mute-toggle" id="muteToggle" type="button" title="靜音" aria-label="靜音" aria-pressed="false"><img src="./icons/ui/speaker.png" alt="" /></button>
-    <button class="theme-toggle" id="themeToggle" type="button" title="切換暗黑模式" aria-label="切換暗黑模式"><img src="./icons/ui/moon.png" alt="" id="themeToggleImg" /></button>
+    <button class="mute-toggle" id="muteToggle" type="button" title="靜音" aria-label="靜音" aria-pressed="false"><i class="fi fi-rr-volume" aria-hidden="true"></i></button>
+    <button class="theme-toggle" id="themeToggle" type="button" title="切換暗黑模式" aria-label="切換暗黑模式"><i class="fi fi-rr-moon-stars theme-ico" aria-hidden="true"></i></button>
     <div class="streak-pill" id="streakPill" title="連續日子">
-      <span class="fire"><img src="./icons/ui/fire.png" alt="" /></span>
+      <span class="fire"><i class="fi fi-rr-flame" aria-hidden="true"></i></span>
       <span id="streakNum">0</span>
     </div>
   </div>
@@ -607,7 +618,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     </div>
     <div id="todayLimitWarn" class="limit-warn" hidden>未完成已經有 5 件——做完或者刪走先至可以加新嘅。</div>
     <div id="todayTaskList"></div>
-    <button class="btn btn-secondary btn-block" id="btnAddTask" type="button"><img class="ui-ico sm" src="./icons/ui/plus.png" alt="" /> 加今日任務</button>
+    <button class="btn btn-secondary btn-block" id="btnAddTask" type="button"><i class="fi fi-rr-plus ui-ico sm" aria-hidden="true"></i> 加今日任務</button>
     <div class="section-title" style="margin-top:20px"><span>速記收件箱</span><span id="inboxCount"></span></div>
     <div id="inboxList"></div>
   </section>
@@ -619,7 +630,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     <div id="goalsSide"></div>
     <div class="section-title goals-habit"><span>習慣</span><span id="goalsHabitMonth">本月</span></div>
     <div id="goalsHabit"></div>
-    <button class="btn btn-secondary btn-block" id="btnAddGoal" type="button"><img class="ui-ico sm" src="./icons/ui/plus.png" alt="" /> 加目標</button>
+    <button class="btn btn-secondary btn-block" id="btnAddGoal" type="button"><i class="fi fi-rr-plus ui-ico sm" aria-hidden="true"></i> 加目標</button>
   </section>
 
   <section id="view-course" class="view">
@@ -645,7 +656,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   </section>
 
   <section id="view-milestones" class="view">
-    <button class="btn btn-ghost" type="button" data-back="more"><img class="back-ico" src="./icons/ui/back.png" alt="" /> 返更多</button>
+    <button class="btn btn-ghost" type="button" data-back="more"><i class="fi fi-rr-arrow-small-left back-ico" aria-hidden="true"></i> 返更多</button>
     <div class="section-title"><span>里程碑牆</span><span>Academy checkpoints</span></div>
     <div id="milestoneList"></div>
   </section>
@@ -653,26 +664,26 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   <section id="view-more" class="view">
     <div class="more-list">
       <button class="more-link" type="button" data-open="terms">
-        <div class="ico"><img src="./icons/ui/brain.png" alt="" /></div>
+        <div class="ico"><i class="fi fi-rr-brain" aria-hidden="true"></i></div>
         <div><strong>每日五條 AI Terms</strong><span>每日 5 個新詞彙 · 累積已學可回睇</span></div>
       </button>
       <button class="more-link" type="button" data-open="review">
-        <div class="ico"><img src="./icons/ui/moon.png" alt="" /></div>
+        <div class="ico"><i class="fi fi-rr-moon-stars" aria-hidden="true"></i></div>
         <div><strong>每日回顧</strong><span>5 分鐘收工：完成、卡住、聽日第一件</span></div>
       </button>
       <button class="more-link" type="button" data-open="milestones">
-        <div class="ico"><img src="./icons/ui/trophy.png" alt="" /></div>
+        <div class="ico"><i class="fi fi-rr-trophy" aria-hidden="true"></i></div>
         <div><strong>里程碑牆</strong><span>Academy checkpoints · 階段目標</span></div>
       </button>
       <button class="more-link" type="button" data-open="settings">
-        <div class="ico"><img src="./icons/ui/gear.png" alt="" /></div>
+        <div class="ico"><i class="fi fi-rr-settings" aria-hidden="true"></i></div>
         <div><strong>設定</strong><span>暗黑模式 · 雲端帳號 · 加到主畫面</span></div>
       </button>
     </div>
   </section>
 
   <section id="view-terms" class="view">
-    <button class="btn btn-ghost" type="button" data-back="more"><img class="back-ico" src="./icons/ui/back.png" alt="" /> 返更多</button>
+    <button class="btn btn-ghost" type="button" data-back="more"><i class="fi fi-rr-arrow-small-left back-ico" aria-hidden="true"></i> 返更多</button>
     <div class="card soft-green" style="margin-top:8px">
       <h2 style="font-size:17px;font-weight:900;margin-bottom:4px">每日五條 AI Terms</h2>
       <p class="hint" id="termsDateLabel"></p>
@@ -690,7 +701,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   </section>
 
   <section id="view-review" class="view">
-    <button class="btn btn-ghost" type="button" data-back="more"><img class="back-ico" src="./icons/ui/back.png" alt="" /> 返更多</button>
+    <button class="btn btn-ghost" type="button" data-back="more"><i class="fi fi-rr-arrow-small-left back-ico" aria-hidden="true"></i> 返更多</button>
     <div class="card soft-blue" style="margin-top:8px">
       <h2 style="font-size:17px;font-weight:900;margin-bottom:4px">每日 5 分鐘回顧</h2>
       <p class="hint" id="reviewDateLabel"></p>
@@ -725,9 +736,9 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   <section id="view-calendar" class="view">
     <div class="section-title"><span>完成日曆</span><span>Calendar</span></div>
     <div class="cal-nav">
-      <button class="icon-btn" id="calPrev" type="button" aria-label="上月"><img src="./icons/ui/chev-left.png" alt="" /></button>
+      <button class="icon-btn" id="calPrev" type="button" aria-label="上月"><i class="fi fi-rr-angle-left" aria-hidden="true"></i></button>
       <h2 id="calMonthLabel"></h2>
-      <button class="icon-btn" id="calNext" type="button" aria-label="下月"><img src="./icons/ui/chev-right.png" alt="" /></button>
+      <button class="icon-btn" id="calNext" type="button" aria-label="下月"><i class="fi fi-rr-angle-right" aria-hidden="true"></i></button>
     </div>
     <div class="cal-grid" id="calDows"></div>
     <div class="cal-grid" id="calDays"></div>
@@ -738,7 +749,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   </section>
 
   <section id="view-settings" class="view">
-    <button class="btn btn-ghost" type="button" data-back="more"><img class="back-ico" src="./icons/ui/back.png" alt="" /> 返更多</button>
+    <button class="btn btn-ghost" type="button" data-back="more"><i class="fi fi-rr-arrow-small-left back-ico" aria-hidden="true"></i> 返更多</button>
     <div class="card" style="margin-top:8px">
       <h2 style="font-size:17px;font-weight:900;margin-bottom:8px">設定</h2>
       <div class="theme-row">
@@ -775,24 +786,25 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       <button class="btn btn-primary btn-block btn-sm" id="btnSyncNow" type="button">重新載入雲端資料</button>
       <p class="hint" style="margin-top:10px">進度存喺 Supabase 各張表（tasks／goals／steps…），唔再係一個 JSON blob。</p>
     </div>
+    <p class="hint" style="margin-top:12px;text-align:center">Icons by <a href="https://www.flaticon.com/uicons" target="_blank" rel="noopener noreferrer">Flaticon Uicons</a></p>
   </section>
 </main>
 
 <div class="capture-bar" id="captureBar">
   <div class="capture-inner">
     <input id="quickCapture" type="text" placeholder="速記：諗到咩就寫…" autocomplete="off" />
-    <button class="btn btn-secondary btn-sm btn-ico-only" id="btnCaptureInbox" type="button" title="入收件箱"><img src="./icons/ui/inbox.png" alt="" /></button>
-    <button class="btn btn-secondary btn-sm btn-ico-only" id="btnCaptureToday" type="button" title="變今日任務"><img src="./icons/ui/sun.png" alt="" /></button>
+    <button class="btn btn-secondary btn-sm btn-ico-only" id="btnCaptureInbox" type="button" title="入收件箱"><i class="fi fi-rr-inbox-in" aria-hidden="true"></i></button>
+    <button class="btn btn-secondary btn-sm btn-ico-only" id="btnCaptureToday" type="button" title="變今日任務"><i class="fi fi-rr-sunrise" aria-hidden="true"></i></button>
   </div>
 </div>
 
 <nav class="bottom-nav" aria-label="主導航">
   <div class="nav-inner">
-    <button class="nav-btn active" data-view="today" type="button"><span class="ico"><img class="nav-ico" src="./icons/nav/today.png" alt="" /></span>今日</button>
-    <button class="nav-btn" data-view="goals" type="button"><span class="ico"><img class="nav-ico" src="./icons/nav/goals.png" alt="" /></span>目標</button>
-    <button class="nav-btn" data-view="course" type="button"><span class="ico"><img class="nav-ico" src="./icons/nav/course.png" alt="" /></span>課程</button>
-    <button class="nav-btn" data-view="calendar" type="button"><span class="ico"><img class="nav-ico" src="./icons/nav/calendar.png" alt="" /></span>日曆</button>
-    <button class="nav-btn" data-view="more" type="button"><span class="ico"><img class="nav-ico" src="./icons/nav/more.png" alt="" /></span>更多</button>
+    <button class="nav-btn active" data-view="today" type="button"><span class="ico"><i class="fi fi-rr-sunrise" aria-hidden="true"></i></span>今日</button>
+    <button class="nav-btn" data-view="goals" type="button"><span class="ico"><i class="fi fi-rr-bullseye" aria-hidden="true"></i></span>目標</button>
+    <button class="nav-btn" data-view="course" type="button"><span class="ico"><i class="fi fi-rr-book-open-cover" aria-hidden="true"></i></span>課程</button>
+    <button class="nav-btn" data-view="calendar" type="button"><span class="ico"><i class="fi fi-rr-calendar" aria-hidden="true"></i></span>日曆</button>
+    <button class="nav-btn" data-view="more" type="button"><span class="ico"><i class="fi fi-rr-menu-dots" aria-hidden="true"></i></span>更多</button>
   </div>
 </nav>
 
@@ -800,7 +812,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   <div class="modal" id="modal"></div>
 </div>
 <div class="toast" id="toast"></div>
-<div class="celeb" id="celeb"><div class="celeb-burst"><img src="./icons/ui/trophy.png" alt="" /></div></div>
+<div class="celeb" id="celeb"><div class="celeb-burst"><i class="fi fi-rr-trophy" aria-hidden="true"></i></div></div>
 
 
 <script>
@@ -910,8 +922,8 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     const sel = box.querySelector('.color-swatch.selected');
     return sel ? (sel.getAttribute('data-color') || null) : null;
   }
-  function ico(src, cls) {
-    return `<img class="${cls || 'ui-ico'}" src="${src}" alt="" />`;
+  function ico(name, cls) {
+    return '<i class="fi fi-rr-' + name + (cls ? ' ' + cls : '') + '" aria-hidden="true"></i>';
   }
 
   const OLD_KEY = 'bobo-pos-v1';
@@ -1060,11 +1072,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     const sw = document.getElementById('themeSwitch');
     const btn = document.getElementById('themeToggle');
     if (sw) { sw.classList.toggle('on', dark); sw.setAttribute('aria-checked', dark ? 'true' : 'false'); }
-    const img = document.getElementById('themeToggleImg');
-    if (img) img.src = dark ? './icons/ui/sun.png' : './icons/ui/moon.png';
-    if (btn && !img) btn.innerHTML = dark
-      ? '<img src="./icons/ui/sun.png" alt="" />'
-      : '<img src="./icons/ui/moon.png" alt="" />';
+    if (btn) btn.innerHTML = dark ? ico('sun', 'theme-ico') : ico('moon-stars', 'theme-ico');
   }
   function applyMute(isMuted) {
     localStorage.setItem(MUTE_KEY, isMuted ? '1' : '0');
@@ -1072,9 +1080,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     const sw = document.getElementById('soundSwitch');
     const hint = document.getElementById('muteHintText');
     if (btn) {
-      btn.innerHTML = isMuted
-        ? '<img src="./icons/ui/mute.png" alt="" />'
-        : '<img src="./icons/ui/speaker.png" alt="" />';
+      btn.innerHTML = isMuted ? ico('volume-mute') : ico('volume');
       btn.classList.toggle('muted', isMuted);
       btn.setAttribute('aria-pressed', isMuted ? 'true' : 'false');
     }
@@ -1369,9 +1375,9 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     const shown = applyTodayMode(tasks);
     const list = document.getElementById('todayTaskList');
     if (!tasks.length) {
-      list.innerHTML = '<div class="empty"><img class="empty-ico" src="./icons/ui/sun.png" alt="" /><h3>今日未有任務</h3><p>預設任務會自動出現；你亦可以自己加。</p></div>';
+      list.innerHTML = '<div class="empty">' + ico('sunrise','empty-ico') + '<h3>今日未有任務</h3><p>預設任務會自動出現；你亦可以自己加。</p></div>';
     } else if (!shown.length) {
-      list.innerHTML = '<div class="empty"><img class="empty-ico" src="./icons/ui/sun.png" alt="" /><h3>已完成都收埋咗</h3><p>切去「全部」或者「未做先」可以再睇。</p></div>';
+      list.innerHTML = '<div class="empty">' + ico('sunrise','empty-ico') + '<h3>已完成都收埋咗</h3><p>切去「全部」或者「未做先」可以再睇。</p></div>';
     } else {
       list.innerHTML = shown.map(t => {
         const isDone = t.status === 'done';
@@ -1411,8 +1417,8 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     box.innerHTML = state.captures.map(c => `
       <div class="inbox-item" data-cap="${c.id}">
         <p>${esc(c.body)}</p>
-        <button type="button" class="icon-btn" data-cap-today="${c.id}" title="變今日任務"><img src="./icons/ui/sun.png" alt="" /></button>
-        <button type="button" class="icon-btn" data-cap-dismiss="${c.id}" title="刪除"><img src="./icons/ui/trash.png" alt="" /></button>
+        <button type="button" class="icon-btn" data-cap-today="${c.id}" title="變今日任務">${ico('sunrise')}</button>
+        <button type="button" class="icon-btn" data-cap-dismiss="${c.id}" title="刪除">${ico('trash')}</button>
       </div>`).join('');
   }
 
@@ -1484,7 +1490,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     const checkpoints = [10, 20, 30, 40, 50, 60, 67];
     const box = document.getElementById('milestoneList');
     if (!steps.length) {
-      box.innerHTML = '<div class="empty"><img class="empty-ico" src="./icons/ui/trophy.png" alt="" /><h3>未有里程碑</h3><p>完成 bootstrap 之後會出現 Academy checkpoints。</p></div>';
+      box.innerHTML = '<div class="empty">' + ico('trophy','empty-ico') + '<h3>未有里程碑</h3><p>完成 bootstrap 之後會出現 Academy checkpoints。</p></div>';
       return;
     }
     box.innerHTML = checkpoints.map(n => {
@@ -1494,7 +1500,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       const allUpTo = steps.filter(s => s.step_index <= n).every(s => s.done);
       const ok = allUpTo;
       return `<div class="milestone ${ok ? 'achieved' : ''}">
-        <div class="ms-icon"><img src="${ok ? './icons/ui/medal.png' : './icons/ui/target.png'}" alt="" /></div>
+        <div class="ms-icon">${ok ? ico('medal') : ico('target')}</div>
         <div class="ms-body">
           <div class="ms-title">Academy 第 ${n} 課關卡</div>
           <div class="ms-meta">${ok ? '已達成' : '未完成 · 完成第 ' + n + ' 課及之前全部'}</div>
@@ -1536,7 +1542,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   async function renderLearnedPanel() {
     const panel = document.getElementById('termsLearnedPanel');
     if (!state.learned.length) {
-      panel.innerHTML = '<div class="empty"><img class="empty-ico" src="./icons/nav/course.png" alt="" /><h3>未有已學詞</h3><p>喺「今日五條」撳已學就會累積喺度。</p></div>';
+      panel.innerHTML = '<div class="empty">' + ico('book-open-cover','empty-ico') + '<h3>未有已學詞</h3><p>喺「今日五條」撳已學就會累積喺度。</p></div>';
       return;
     }
     const ids = state.learned.map(l => l.term_id);
@@ -1784,13 +1790,13 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
         return `<div class="asset-row" data-asset="${a.id}">
           <img class="asset-thumb" src="${esc(a.url)}" alt="" />
           <a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.label || '圖片')}</a>
-          <button type="button" class="icon-btn" data-del-asset="${a.id}"><img src="./icons/ui/trash.png" alt="" /></button>
+          <button type="button" class="icon-btn" data-del-asset="${a.id}">${ico('trash')}</button>
         </div>`;
       }
       return `<div class="asset-row" data-asset="${a.id}">
-        <img class="ui-ico sm" src="./icons/ui/link.png" alt="" />
+        ${ico('link','ui-ico sm')}
         <a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.label || a.url)}</a>
-        <button type="button" class="icon-btn" data-del-asset="${a.id}"><img src="./icons/ui/trash.png" alt="" /></button>
+        <button type="button" class="icon-btn" data-del-asset="${a.id}">${ico('trash')}</button>
       </div>`;
     }).join('') || '<p class="hint">未有附件</p>';
 
