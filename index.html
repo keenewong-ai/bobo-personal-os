@@ -669,7 +669,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   --gcal-dot-ring: var(--bg);
 }
 .gcal-section { margin-top: 20px; }
-.gcal-section .section-title { margin-bottom: 10px; }
+.gcal-section .gcal-head { margin-bottom: 10px; }
 .gcal-rail { display: flex; flex-direction: column; gap: 2px; }
 .gcal-ev {
   display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: stretch;
@@ -710,6 +710,25 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
 .gcal-empty {
   font-size: 13px; color: var(--gray-600); padding: 10px 2px 4px; font-weight: 600;
 }
+.gcal-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin: 8px 0 10px; flex-wrap: wrap;
+}
+.gcal-head .section-title { margin: 0; flex: 1; min-width: 140px; }
+.gcal-head-right {
+  display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.gcal-head-right #gcalSyncLabel {
+  font-size: 11px; font-weight: 700; color: var(--gray-600); white-space: nowrap;
+}
+.gcal-sync-btn {
+  min-height: 34px; padding: 0 10px; font-size: 12px; font-weight: 800;
+  border-radius: 10px; gap: 4px; display: inline-flex; align-items: center;
+}
+.gcal-sync-btn .fi { font-size: 13px; margin: 0; }
+.gcal-sync-btn.is-loading .fi { animation: gcal-spin .8s linear infinite; }
+@keyframes gcal-spin { to { transform: rotate(360deg); } }
+
 
 </style>
 <script>
@@ -787,7 +806,15 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     <div id="todayTaskList"></div>
     <button class="btn btn-secondary btn-block" id="btnAddTask" type="button"><i class="fi fi-rr-plus ui-ico sm" aria-hidden="true"></i> 加今日任務</button>
     <div class="gcal-section" id="gcalSection">
-      <div class="section-title"><span>今日行程（Google）</span><span id="gcalSyncLabel"></span></div>
+      <div class="gcal-head">
+        <div class="section-title"><span>今日行程（Google）</span></div>
+        <div class="gcal-head-right">
+          <span id="gcalSyncLabel"></span>
+          <button type="button" class="btn btn-secondary btn-sm gcal-sync-btn" id="btnGcalSync" title="同步行程">
+            <i class="fi fi-rr-refresh" aria-hidden="true"></i> 同步
+          </button>
+        </div>
+      </div>
       <div id="gcalEventList" class="gcal-rail" aria-live="polite"></div>
     </div>
     <div class="section-title" style="margin-top:20px"><span>速記收件箱</span><span id="inboxCount"></span></div>
@@ -1112,6 +1139,8 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
    * Then the app loadAll → hydrateGcalFromServer → saveGcalStore → render.
    * ------------------------------------------------ */
   const GCAL_KEY = 'bobo-pos-gcal-v1';
+  /** Routine webhook URL for on-demand Google→DB sync. Parent fills after creating webhook trigger. */
+  const POS_GCAL_SYNC_HOOK = '';
   /**
    * Local + row.events shape:
    * {
@@ -1195,6 +1224,61 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     } catch (e) {
       console.warn('[gcal] hydrate exception', e);
       return null;
+    }
+  }
+
+
+  function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  /**
+   * Manual sync button:
+   * 1) Optional POST to POS_GCAL_SYNC_HOOK (bot webhook pulls Google → upserts pos_gcal_days)
+   * 2) Wait briefly if hook fired
+   * 3) hydrateGcalFromServer + render
+   * SPA has no Google token — hook is required for a true Google pull.
+   */
+  async function manualGcalSync() {
+    const btn = document.getElementById('btnGcalSync');
+    if (btn && btn.disabled) return;
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add('is-loading');
+    }
+    const day = todayStr();
+    let hooked = false;
+    try {
+      const hook = (typeof window.POS_GCAL_SYNC_HOOK === 'string' && window.POS_GCAL_SYNC_HOOK)
+        || POS_GCAL_SYNC_HOOK;
+      if (hook) {
+        hooked = true;
+        try {
+          await fetch(hook, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ day, source: 'manual', user_id: uid() || null })
+          });
+        } catch (e) {
+          console.warn('[gcal] sync hook soft-fail', e);
+        }
+        await sleep(2200);
+      }
+      const store = await hydrateGcalFromServer();
+      renderGcalEvents();
+      if (hooked) {
+        toast(store ? '已更新行程' : '已觸發同步；稍後再撳一次刷新');
+      } else {
+        toast(store ? '已刷新行程（伺服器資料）' : '未有伺服器行程；朝早會自動同步，或喺 chat 叫即刻同步');
+      }
+    } catch (e) {
+      toast(e.message || String(e) || '同步失敗');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('is-loading');
+      }
     }
   }
 
@@ -2498,6 +2582,8 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     };
 
     document.getElementById('btnAddTask').onclick = () => { sfxClick(); openAddTaskModal(); };
+    const btnGcalSync = document.getElementById('btnGcalSync');
+    if (btnGcalSync) btnGcalSync.onclick = () => { sfxClick(); manualGcalSync(); };
     document.getElementById('btnAddGoal').onclick = () => { sfxClick(); openAddGoalModal(); };
     document.getElementById('btnCaptureInbox').onclick = () => addCapture(false);
     document.getElementById('btnCaptureToday').onclick = () => addCapture(true);
