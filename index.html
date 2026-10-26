@@ -344,12 +344,13 @@ select {
 
 
 .header-actions { display: flex; align-items: center; gap: 8px; }
-.theme-toggle {
+.theme-toggle, .mute-toggle {
   width: 40px; height: 40px; border-radius: 12px; border: 2px solid var(--gray-100);
   background: var(--card); display: grid; place-items: center; font-size: 18px;
   box-shadow: var(--shadow);
 }
-.theme-toggle:active { transform: scale(.94); }
+.theme-toggle:active, .mute-toggle:active { transform: scale(.94); }
+.mute-toggle.muted { opacity: .72; }
 .sync-card code {
   display: block; font-size: 11px; word-break: break-all; background: var(--gray-50);
   border: 1px solid var(--gray-100); border-radius: 8px; padding: 8px 10px; margin: 6px 0 10px;
@@ -420,6 +421,7 @@ select {
     </div>
   </div>
   <div class="header-actions">
+    <button class="mute-toggle" id="muteToggle" type="button" title="靜音" aria-label="靜音" aria-pressed="false">🔊</button>
     <button class="theme-toggle" id="themeToggle" type="button" title="切換暗黑模式" aria-label="切換暗黑模式">🌙</button>
     <div class="streak-pill" id="streakPill" title="連續日子">
       <span class="fire">🔥</span>
@@ -585,6 +587,13 @@ select {
           <p class="hint">護眼 · 深炭灰底 · 保留綠色重點</p>
         </div>
         <button class="switch" id="themeSwitch" type="button" role="switch" aria-checked="false" aria-label="暗黑模式"><i></i></button>
+      </div>
+      <div class="theme-row">
+        <div>
+          <strong>按鈕聲效</strong>
+          <p class="hint" id="muteHintText">有聲 · Duolingo 式輕點同完成叮</p>
+        </div>
+        <button class="switch on" id="soundSwitch" type="button" role="switch" aria-checked="true" aria-label="按鈕聲效"><i></i></button>
       </div>
       <p class="hint" style="margin-bottom:12px">本機會快取一份；進度亦會同步去雲端 database（Supabase）。</p>
       <div class="card soft-green pwa-hint" id="pwaInstallHint" style="margin:0 0 12px;padding:12px">
@@ -894,6 +903,7 @@ select {
     return {
       version: 1,
       theme: 'light',
+      muted: false,
       seededAt: now().toISOString(),
       tasks: [
         { id: uid(), title: '讀 Claude Academy 第 1–2 課', emoji: '📚', priority: 'high', date: t, done: false, doneAt: null, goalId: null, sample: true, createdAt: now().toISOString() },
@@ -984,6 +994,7 @@ select {
 
   function migrateStateShape() {
     if (!state.theme) state.theme = 'light';
+    if (typeof state.muted !== 'boolean') state.muted = false;
     if (!state.lessons || state.lessons.length !== LESSON_COUNT) {
       var doneMap = {};
       (state.lessons || []).forEach(function (l) { doneMap[l.n] = l; });
@@ -1025,6 +1036,99 @@ select {
 
   function toggleTheme() {
     setTheme(state.theme === 'dark' ? 'light' : 'dark');
+    playSfx('toggle');
+  }
+
+  /* —— Duolingo-like Web Audio SFX —— */
+  var audioCtx = null;
+  var audioUnlocked = false;
+
+  function ensureAudio() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(function () {});
+      }
+      audioUnlocked = true;
+      return audioCtx;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function unlockAudioFromGesture() {
+    ensureAudio();
+  }
+
+  function tone(freq, start, dur, type, gainPeak) {
+    var ctx = ensureAudio();
+    if (!ctx) return;
+    var osc = ctx.createOscillator();
+    var g = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, start);
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.exponentialRampToValueAtTime(gainPeak || 0.08, start + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + dur + 0.02);
+  }
+
+  function playSfx(kind) {
+    if (!state || state.muted) return;
+    var ctx = ensureAudio();
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    if (kind === 'success') {
+      // cheerful two-note chime
+      tone(523.25, t, 0.12, 'triangle', 0.09);
+      tone(659.25, t + 0.08, 0.14, 'triangle', 0.08);
+      tone(783.99, t + 0.16, 0.18, 'sine', 0.06);
+    } else if (kind === 'toggle') {
+      tone(420, t, 0.05, 'square', 0.035);
+      tone(320, t + 0.04, 0.06, 'sine', 0.03);
+    } else {
+      // soft pop / tap
+      tone(680, t, 0.045, 'sine', 0.055);
+      tone(920, t + 0.018, 0.04, 'triangle', 0.03);
+    }
+  }
+
+  function applyMuteUi() {
+    var muted = !!(state && state.muted);
+    var btn = $('#muteToggle');
+    if (btn) {
+      btn.textContent = muted ? '🔇' : '🔊';
+      btn.classList.toggle('muted', muted);
+      btn.setAttribute('aria-pressed', muted ? 'true' : 'false');
+      btn.setAttribute('title', muted ? '有聲' : '靜音');
+      btn.setAttribute('aria-label', muted ? '有聲' : '靜音');
+    }
+    var sw = $('#soundSwitch');
+    if (sw) {
+      // switch ON = sound on (not muted)
+      sw.classList.toggle('on', !muted);
+      sw.setAttribute('aria-checked', muted ? 'false' : 'true');
+    }
+    var hint = $('#muteHintText');
+    if (hint) hint.textContent = muted ? '靜音 · 撳右上角恢復聲效' : '有聲 · Duolingo 式輕點同完成叮';
+  }
+
+  function setMuted(muted) {
+    if (!state) return;
+    state.muted = !!muted;
+    applyMuteUi();
+    save();
+  }
+
+  function toggleMute() {
+    setMuted(!(state && state.muted));
+    // play a soft toggle only when turning sound back on
+    if (state && !state.muted) playSfx('toggle');
   }
 
   function persistLocalOnly() {
@@ -1228,6 +1332,7 @@ select {
   }
 
   function celebrate() {
+    playSfx('success');
     const el = $('#celeb');
     el.classList.add('show');
     clearTimeout(celebrate._t);
@@ -1524,6 +1629,7 @@ select {
           save(); renderAll();
           toast('記低咗 ✓');
           if (Object.keys(state.aiTerms.learned).length % 5 === 0) celebrate();
+          else playSfx('success');
         } else if (act === 'unlearn') {
           delete state.aiTerms.learned[id];
           recomputeActivity();
@@ -1954,28 +2060,34 @@ select {
   $('#btnReseed').onclick = function () {
     if (!confirm('用示範資料覆蓋而家嘅資料？')) return;
     var theme = state && state.theme === 'dark' ? 'dark' : 'light';
+    var muted = !!(state && state.muted);
     state = seedData();
     state.theme = theme;
+    state.muted = muted;
     recomputeActivity();
     save();
     applyTheme();
+    applyMuteUi();
     renderAll();
     toast('已載入示範資料');
   };
   $('#btnWipe').onclick = function () {
     if (!confirm('確定清空所有資料？呢個唔可以復原。')) return;
     var theme = state && state.theme === 'dark' ? 'dark' : 'light';
+    var muted = !!(state && state.muted);
     localStorage.removeItem(KEY);
     state = {
-      version: 1, theme: theme, tasks: [], goals: [], lessons: buildLessons(),
+      version: 1, theme: theme, muted: muted, tasks: [], goals: [], lessons: buildLessons(),
       milestones: [], inbox: [], reviews: {}, activityDays: {},
       aiTerms: { learned: {}, daily: {} }
     };
-    save(); applyTheme(); renderAll(); toast('已清空');
+    save(); applyTheme(); applyMuteUi(); renderAll(); toast('已清空');
   };
 
   $('#themeToggle').onclick = function () { toggleTheme(); };
   $('#themeSwitch').onclick = function () { toggleTheme(); };
+  $('#muteToggle').onclick = function () { toggleMute(); };
+  $('#soundSwitch').onclick = function () { toggleMute(); };
 
   $('#btnCopySyncId').onclick = function () {
     if (!syncId) return;
@@ -2036,16 +2148,49 @@ select {
     });
   }
 
+  // Unlock AudioContext on first user gesture
+  ['pointerdown', 'touchstart', 'keydown'].forEach(function (ev) {
+    document.addEventListener(ev, function once() {
+      unlockAudioFromGesture();
+    }, { once: true, passive: true });
+  });
+
+  // Global UI SFX (capture phase so dynamically rendered buttons also get sounds)
+  document.addEventListener('click', function (e) {
+    var el = e.target && e.target.closest
+      ? e.target.closest('button, .nav-btn, .task, .lesson, .term-card, .cal-day, .mood-btn, .terms-tab, .switch, a.btn')
+      : null;
+    if (!el) return;
+    if (el.id === 'muteToggle' || el.id === 'soundSwitch') return; // handled in handlers
+    if (el.id === 'themeToggle' || el.id === 'themeSwitch') return; // toggleTheme plays
+    if (el.disabled) return;
+    var successish = el.getAttribute('data-sfx') === 'success'
+      || el.classList.contains('check')
+      || (el.getAttribute('data-act') === 'toggle');
+    // Prefer soft tap for nav / generic; success is fired from action handlers
+    if (el.classList.contains('nav-btn') || el.classList.contains('terms-tab') || el.classList.contains('cal-day') || el.classList.contains('mood-btn')) {
+      playSfx('tap');
+    } else if (el.classList.contains('switch')) {
+      playSfx('toggle');
+    } else if (successish) {
+      // leave success to explicit handlers for accurate complete feedback
+      playSfx('tap');
+    } else {
+      playSfx('tap');
+    }
+  }, true);
+
   syncId = getOrCreateSyncId();
   initSupabase();
   load();
   applyTheme();
+  applyMuteUi();
   checkAutoMilestones();
   renderAll();
   refreshSyncUi();
   refreshPwaInstallHint();
   registerServiceWorker();
-  pullAndMerge().then(function () { refreshSyncUi(); });
+  pullAndMerge().then(function () { applyMuteUi(); refreshSyncUi(); });
 })();
 </script>
 </body>
