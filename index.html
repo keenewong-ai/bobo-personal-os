@@ -3,7 +3,17 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#58CC02" />
+<meta name="theme-color" content="#58CC02" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#58CC02" id="themeColorMeta" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Personal OS" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png" />
 <title>BoBo Personal OS</title>
 <style>
 :root {
@@ -376,6 +386,12 @@ select {
 [data-theme="dark"] .card.soft-green { border-color: #3A6B1A; }
 [data-theme="dark"] .card.soft-blue { border-color: #1A5A72; }
 [data-theme="dark"] .switch i { background: #F2F2F2; }
+
+.pwa-hint { display: none; border-style: dashed; }
+.pwa-hint.show { display: block; }
+.pwa-hint ol { margin: 8px 0 0; padding-left: 1.2em; color: var(--gray-600); font-size: 13px; line-height: 1.55; }
+.pwa-hint strong { font-weight: 900; }
+
 </style>
 <script>
 (function(){
@@ -385,7 +401,7 @@ select {
       var s = JSON.parse(raw);
       if (s && s.theme === 'dark') {
         document.documentElement.setAttribute('data-theme','dark');
-        var m = document.querySelector('meta[name="theme-color"]');
+        var m = document.getElementById('themeColorMeta') || document.querySelector('meta[name="theme-color"]');
         if (m) m.setAttribute('content','#121212');
       }
     }
@@ -571,6 +587,15 @@ select {
         <button class="switch" id="themeSwitch" type="button" role="switch" aria-checked="false" aria-label="暗黑模式"><i></i></button>
       </div>
       <p class="hint" style="margin-bottom:12px">本機會快取一份；進度亦會同步去雲端 database（Supabase）。</p>
+      <div class="card soft-green pwa-hint" id="pwaInstallHint" style="margin:0 0 12px;padding:12px">
+        <strong>📱 加到主畫面</strong>
+        <p class="hint" style="margin-top:4px;margin-bottom:0">裝成 App 之後離線都開得，進度照樣同步。</p>
+        <ol id="pwaInstallSteps">
+          <li>用 Chrome 打開呢個網站</li>
+          <li>撳右上角 ⋮ 選單</li>
+          <li>揀「加到主畫面」或「安裝應用程式」</li>
+        </ol>
+      </div>
       <button class="btn btn-secondary btn-block" id="btnExport" type="button" style="margin-bottom:8px">匯出 JSON</button>
       <button class="btn btn-secondary btn-block" id="btnReseed" type="button" style="margin-bottom:8px">重新載入示範資料</button>
       <button class="btn btn-danger btn-block" id="btnWipe" type="button">清空所有資料</button>
@@ -980,7 +1005,7 @@ select {
   function applyTheme() {
     var theme = (state && state.theme === 'dark') ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', theme);
-    var meta = document.querySelector('meta[name="theme-color"]');
+    var meta = document.getElementById('themeColorMeta') || document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', theme === 'dark' ? '#121212' : '#58CC02');
     var toggle = $('#themeToggle');
     if (toggle) toggle.textContent = theme === 'dark' ? '☀️' : '🌙';
@@ -1827,7 +1852,7 @@ select {
     if (name === 'review') renderReview();
     if (name === 'calendar') renderCalendar();
     if (name === 'terms') renderTerms();
-    if (name === 'settings') { applyTheme(); refreshSyncUi(); }
+    if (name === 'settings') { applyTheme(); refreshSyncUi(); refreshPwaInstallHint(); }
   }
 
   $all('.nav-btn').forEach(function (b) {
@@ -1979,6 +2004,38 @@ select {
     toast('已切換同步 ID');
   };
 
+  function isStandaloneDisplay() {
+    try {
+      if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+      if (window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches) return true;
+      if (typeof navigator !== 'undefined' && navigator.standalone === true) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  function refreshPwaInstallHint() {
+    var el = $('#pwaInstallHint');
+    if (!el) return;
+    if (isStandaloneDisplay()) {
+      el.classList.remove('show');
+      el.style.display = 'none';
+    } else {
+      el.classList.add('show');
+      el.style.display = '';
+    }
+  }
+
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    var swUrl = './sw.js';
+    navigator.serviceWorker.register(swUrl).then(function (reg) {
+      // quiet success
+      if (reg && reg.update) try { reg.update(); } catch (e) {}
+    }).catch(function (err) {
+      console.warn('SW register failed', err);
+    });
+  }
+
   syncId = getOrCreateSyncId();
   initSupabase();
   load();
@@ -1986,6 +2043,8 @@ select {
   checkAutoMilestones();
   renderAll();
   refreshSyncUi();
+  refreshPwaInstallHint();
+  registerServiceWorker();
   pullAndMerge().then(function () { refreshSyncUi(); });
 })();
 </script>
