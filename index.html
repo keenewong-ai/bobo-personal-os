@@ -32,6 +32,10 @@
   --font: "Noto Sans TC", "PingFang HK", "Microsoft JhengHei", system-ui, sans-serif;
   --ring-track: #E5E5E5;
   --check-border: #6B7280;
+  --stripe: rgba(0,0,0,.05);
+  --stage-border: #D8DEE3;
+  --stage-card: #F3F5F7;
+  --ghost-border: #B7C5CB;
 }
 [data-theme="dark"] {
   --green: #58CC02; --green-dark: #89E219; --green-soft: #1B3A24;
@@ -45,6 +49,10 @@
   --shadow: 0 2px 0 rgba(0,0,0,.35); --shadow-lg: 0 8px 28px rgba(0,0,0,.5);
   --ring-track: #334850;
   --check-border: #C5D0D5;
+  --stripe: rgba(255,255,255,.04);
+  --stage-border: #2c3c44;
+  --stage-card: #1a2228;
+  --ghost-border: #3d5560;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-tap-highlight-color: transparent; }
@@ -101,9 +109,12 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; width: 100%; min-width: 
 .stat .num { font-size: 28px; font-weight: 900; color: var(--green-dark); line-height: 1; }
 .stat .lbl { font-size: 12px; color: var(--gray-600); margin-top: 4px; font-weight: 700; }
 .task {
-  display: flex; align-items: flex-start; gap: 12px; padding: 14px; background: var(--card);
-  border: 2px solid var(--gray-100); border-radius: var(--radius); margin-bottom: 10px;
-  box-shadow: var(--shadow); transition: transform .12s;
+  display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px;
+  background-color: var(--stage-card);
+  background-image: repeating-linear-gradient(-45deg, transparent 0 14px, var(--stripe) 14px 28px);
+  border: 2px solid var(--stage-border); border-radius: var(--radius); margin-bottom: 10px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06); transition: transform .12s;
+  position: relative;
 }
 .task:active { transform: scale(.985); }
 .task.done { opacity: .65; }
@@ -152,8 +163,9 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; width: 100%; min-width: 
 .empty .emoji { font-size: 36px; margin-bottom: 8px; }
 .empty h3 { font-size: 16px; margin-bottom: 4px; }
 .empty p { font-size: 13px; color: var(--gray-600); margin-bottom: 14px; }
-.progress-wrap { margin: 8px 0 4px; }
-.progress-bar { height: 12px; background: var(--gray-100); border-radius: 999px; overflow: hidden; }
+.progress-wrap { margin: 12px 0 4px; }
+.progress-bar { height: 10px; background: var(--gray-100); border-radius: 999px; overflow: hidden; }
+[data-theme="dark"] .goal-card .progress-bar { background: #243038; }
 .progress-bar > i {
   display: block; height: 100%; background: linear-gradient(90deg, var(--green), #89E219);
   border-radius: 999px; transition: width .35s ease;
@@ -450,12 +462,41 @@ select {
 [data-theme="dark"] .auth-error { background: #3A1515; border-color: #6B2A2A; color: #FFB0B0; }
 .auth-error h2 { font-size: 16px; font-weight: 900; margin-bottom: 8px; color: inherit; }
 .auth-error ol { margin: 8px 0 0; padding-left: 1.2em; font-size: 13px; line-height: 1.55; }
-.task-goto {
-  margin-top: 8px; min-height: 36px; font-size: 12px; padding: 0 12px;
-  border-radius: 10px; background: var(--blue-soft); color: #0A7EA4;
-  border: 2px solid #A6E0F7; font-weight: 800;
+.task-goto, .goal-ghost {
+  margin-top: 8px; min-height: 0; font-size: 12px; padding: 6px 12px;
+  border-radius: 12px; background: transparent; color: var(--blue);
+  border: 2px solid var(--ghost-border); font-weight: 800;
+  box-shadow: none; display: inline-flex; align-items: center; justify-content: center;
 }
-[data-theme="dark"] .task-goto { border-color: #1A5A72; }
+.goal-ghost {
+  margin-top: 0; padding: 10px 14px; font-size: 14px; border-radius: 14px; flex-shrink: 0;
+  align-self: flex-start;
+}
+.goal-card {
+  background-color: var(--stage-card);
+  background-image: repeating-linear-gradient(-45deg, transparent 0 14px, var(--stripe) 14px 28px);
+  border-color: var(--stage-border);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  position: relative;
+}
+.goal-top {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+}
+.goal-top-main { flex: 1; min-width: 0; }
+.goal-card .goal-title { font-size: 17px; font-weight: 900; display: block; letter-spacing: .01em; }
+.goal-status {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 6px;
+  font-size: 13px; font-weight: 800; color: var(--gray-600);
+}
+.goal-status.on { color: var(--green); }
+.goal-status-check {
+  width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+  display: inline-grid; place-items: center; font-size: 10px; font-weight: 900;
+  background: transparent; border: 2px solid #5a707a; color: transparent;
+}
+.goal-status.on .goal-status-check {
+  background: var(--green); border-color: var(--green); color: #fff; font-size: 11px;
+}
 .asset-row {
   display: flex; align-items: center; gap: 8px; padding: 8px 10px;
   border: 2px solid var(--gray-100); border-radius: 10px; margin-bottom: 6px;
@@ -537,24 +578,22 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
 }
 .color-swatch.selected { border-color: var(--gray-900); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px currentColor; }
 .color-swatch.none { background: repeating-conic-gradient(var(--gray-200) 0% 25%, var(--card) 0% 50%) 50%/12px 12px; }
-/* Style C: tinted border + right-side color dot (no left stripe / gradient) */
+/* Color theme: tinted border + right dot; keep diagonal stripe stage bg */
 .task.theme-tint,
 .goal-card.theme-tint {
-  background: var(--card);
-  border-color: color-mix(in srgb, var(--theme-accent, var(--green)) 70%, var(--gray-100));
-  box-shadow: var(--shadow), 0 0 0 1px color-mix(in srgb, var(--theme-accent, var(--green)) 25%, transparent);
+  border-color: color-mix(in srgb, var(--theme-accent, var(--green)) 55%, var(--stage-border));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 0 0 1px color-mix(in srgb, var(--theme-accent, var(--green)) 22%, transparent);
 }
 .theme-dot {
   width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
   margin-top: 9px; margin-left: auto;
   background: var(--theme-accent, var(--gray-400));
 }
-.goal-card.theme-tint {
-  position: relative;
-  padding-right: 28px;
-}
+.goal-card.theme-tint { padding-right: 18px; }
 .goal-card .theme-dot {
-  position: absolute; top: 16px; right: 14px; margin: 0;
+  position: absolute; top: 14px; right: 14px; margin: 0; z-index: 1;
 }
 
 </style>
@@ -1463,18 +1502,29 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       const colorId = (g.color && COLOR_BY_ID[g.color]) ? g.color : (KIND_DEFAULT_COLOR[g.kind] || null);
       const tint = colorId ? ' theme-tint' : '';
       const dot = colorId ? '<span class="theme-dot" aria-hidden="true"></span>' : '';
+      const hasProgress = (cur > 0) || (pct > 0);
+      const statusLine = hasProgress
+        ? '<div class="goal-status on"><span class="goal-status-check">✓</span>有進度</div>'
+        : `<div class="goal-status"><span class="goal-status-check" aria-hidden="true"></span>${esc(tagLabel)}${isHabit ? ' · ' + esc(month.label) : ''}</div>`;
+      let ghost = '';
+      if (g.kind === 'academy') ghost = '<button type="button" class="goal-ghost" data-open-course>睇課</button>';
+      else if (g.kind === 'ai_terms') ghost = '<button type="button" class="goal-ghost" data-open-terms>去 Terms</button>';
+      else if (g.kind === 'daily_review') ghost = '<button type="button" class="goal-ghost" data-open-review>去回顧</button>';
       return `<div class="card goal-card${tint}" data-goal="${g.id}" ${themeStyle(colorId)}>
         ${dot}
-        <span class="track-tag ${tag}">${tagLabel}${g.is_system ? ' · 系統' : ''}${isHabit ? ' · ' + esc(month.label) : ''}</span>
-        <strong style="font-size:16px;display:block">${esc(g.title)}</strong>
-        <p class="hint">${esc(g.description || '')}</p>
+        <div class="goal-top">
+          <div class="goal-top-main">
+            <span class="track-tag ${tag}">${tagLabel}${g.is_system ? ' · 系統' : ''}${isHabit ? ' · ' + esc(month.label) : ''}</span>
+            <strong class="goal-title">${esc(g.title)}</strong>
+            ${statusLine}
+            ${g.description ? `<p class="hint">${esc(g.description)}</p>` : ''}
+          </div>
+          ${ghost}
+        </div>
         <div class="progress-wrap">
           <div class="progress-bar"><i style="width:${barW}%"></i></div>
           <div class="progress-label"><span>${esc(sub)}</span><span>${pct}%</span></div>
         </div>
-        ${g.kind === 'academy' ? '<button type="button" class="btn btn-secondary btn-sm" data-open-course style="margin-top:8px">睇 67 課 →</button>' : ''}
-        ${g.kind === 'ai_terms' ? '<button type="button" class="btn btn-secondary btn-sm" data-open-terms style="margin-top:8px">去 AI Terms →</button>' : ''}
-        ${g.kind === 'daily_review' ? '<button type="button" class="btn btn-secondary btn-sm" data-open-review style="margin-top:8px">去回顧 →</button>' : ''}
       </div>`;
     }
     document.getElementById('goalsMain').innerHTML = tracks.main.map(card).join('') || '<p class="hint">未有主線目標</p>';
