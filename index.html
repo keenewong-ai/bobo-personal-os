@@ -482,14 +482,14 @@ select {
       </div>
       <div class="stat">
         <div class="num" id="todayLeftCount">0</div>
-        <div class="lbl">仲未做（最多 3）</div>
+        <div class="lbl">仲未做（最多 5）</div>
       </div>
     </div>
     <div class="section-title">
       <span>今日任務卡</span>
       <span id="todayDateLabel"></span>
     </div>
-    <div id="todayLimitWarn" class="limit-warn" hidden>今日已經有 3 件任務——做完或者刪走先至可以加新嘅。</div>
+    <div id="todayLimitWarn" class="limit-warn" hidden>未完成已經有 5 件——做完或者刪走先至可以加新嘅。</div>
     <div id="todayTaskList"></div>
     <button class="btn btn-primary btn-block" id="btnAddTask" type="button">＋ 加今日任務</button>
     <div class="section-title" style="margin-top:20px"><span>速記收件箱</span><span id="inboxCount"></span></div>
@@ -694,7 +694,7 @@ select {
   const SUPABASE_URL = 'https://avfpoaipqkqxzuaqjutv.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2ZnBvYWlwcWtxeHp1YXFqdXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwNDMzNDIsImV4cCI6MjEwNzYxOTM0Mn0.zPmiuQPPA61QLdbJzkAAnUIkCEtKlFhdlEPiomVuJDY';
   const TZ = 'Asia/Hong_Kong';
-  const MAX_TODAY = 3;
+  const MAX_TODAY = 5;
   const OLD_KEY = 'bobo-pos-v1';
   const MIGRATED_KEY = 'bobo-pos-migrated-v2';
   const THEME_KEY = 'bobo-pos-theme';
@@ -786,6 +786,10 @@ select {
     return { doneDays, daysInMonth, pct, label, start, end };
   }
   function uid() { return state.user && state.user.id; }
+  function openTodayCount(list) {
+    const src = list || state.tasks || [];
+    return src.filter(t => t.status === 'open').length;
+  }
   function goalByKind(kind) { return state.goals.find(g => g.kind === kind && g.is_system); }
   function esc(s) {
     return String(s == null ? '' : s)
@@ -996,7 +1000,7 @@ select {
       await sb.from('pos_tasks').update({ status: 'rolled' }).eq('id', t.id);
       // recreate on today if room and not default duplicate
       const { data: todayTasks } = await sb.from('pos_tasks').select('id,action_page,title,status').eq('user_id', uid()).eq('day', day);
-      const openCount = (todayTasks || []).filter(x => x.status === 'open' || x.status === 'done').length;
+      const openCount = openTodayCount(todayTasks || []);
       // Only roll non-default custom tasks into today if under cap; defaults recreated by ensureTodayDefaults
       if (!t.is_default && openCount < MAX_TODAY) {
         const exists = (todayTasks || []).some(x => x.title === t.title && x.status !== 'rolled');
@@ -1043,7 +1047,7 @@ select {
     }
 
     // Third slot: next academy step if room
-    const activeCount = list.filter(t => t.status === 'open' || t.status === 'done').length + inserts.length;
+    const activeCount = openTodayCount(list) + inserts.length;
     if (gAcademy && activeCount < MAX_TODAY && !list.some(t => t.action_page === 'academy' && t.status !== 'rolled')) {
       const steps = state.stepsByGoal[gAcademy.id] || [];
       const next = steps.find(s => !s.done);
@@ -1111,8 +1115,8 @@ select {
     const open = tasks.filter(t => t.status === 'open').length;
     document.getElementById('todayDoneCount').textContent = done;
     document.getElementById('todayLeftCount').textContent = open;
-    document.getElementById('todayLimitWarn').hidden = tasks.length < MAX_TODAY;
-    document.getElementById('btnAddTask').disabled = tasks.length >= MAX_TODAY;
+    document.getElementById('todayLimitWarn').hidden = open < MAX_TODAY;
+    document.getElementById('btnAddTask').disabled = open >= MAX_TODAY;
 
     const list = document.getElementById('todayTaskList');
     if (!tasks.length) {
@@ -1601,8 +1605,7 @@ select {
   }
 
   function openAddTaskModal() {
-    const tasks = state.tasks.filter(t => t.status !== 'rolled');
-    if (tasks.length >= MAX_TODAY) return toast('今日最多 3 件');
+    if (openTodayCount() >= MAX_TODAY) return toast('今日最多 5 件未完成');
     const gAcademy = goalByKind('academy');
     const steps = gAcademy ? (state.stepsByGoal[gAcademy.id] || []).filter(s => !s.done).slice(0, 20) : [];
     openModal(`
@@ -1684,8 +1687,7 @@ select {
     const body = input.value.trim();
     if (!body) return;
     if (toToday) {
-      const tasks = state.tasks.filter(t => t.status !== 'rolled');
-      if (tasks.length >= MAX_TODAY) return toast('今日已滿 3 件');
+      if (openTodayCount() >= MAX_TODAY) return toast('今日已滿 5 件未完成');
       const { data, error } = await sb.from('pos_tasks').insert({
         user_id: uid(), day: todayStr(), title: body, status: 'open',
         is_default: false, sort_order: 40
@@ -1891,8 +1893,7 @@ select {
         const id = toToday.getAttribute('data-cap-today');
         const cap = state.captures.find(c => c.id === id);
         if (!cap) return;
-        const tasks = state.tasks.filter(t => t.status !== 'rolled');
-        if (tasks.length >= MAX_TODAY) return toast('今日已滿 3 件');
+        if (openTodayCount() >= MAX_TODAY) return toast('今日已滿 5 件未完成');
         const { data, error } = await sb.from('pos_tasks').insert({
           user_id: uid(), day: todayStr(), title: cap.body, status: 'open', is_default: false, sort_order: 40
         }).select().single();
