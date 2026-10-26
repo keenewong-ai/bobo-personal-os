@@ -476,10 +476,8 @@ select {
 .theme-toggle img, .mute-toggle img { width: 28px; height: 28px; }
 .streak-pill .fire { display:inline-flex; align-items:center; }
 .streak-pill .fire img { width: 18px; height: 18px; }
-.check { display:flex; align-items:center; justify-content:center; padding:0; overflow:hidden; }
-.check img { width: 18px; height: 18px; }
-.task.done .check { background: transparent; border-color: transparent; }
-.task.done .check img { width: 28px; height: 28px; }
+.check { display:flex; align-items:center; justify-content:center; padding:0; }
+/* task complete = CSS circle + ✓ (not Duo check.png) */
 .icon-btn img { width: 22px; height: 22px; }
 .cal-nav .icon-btn img { width: 24px; height: 24px; }
 .btn .ui-ico { margin-right: 4px; }
@@ -489,6 +487,23 @@ select {
 .ms-icon img { width: 36px; height: 36px; }
 .celeb-burst img { width: 72px; height: 72px; }
 .back-ico { width: 18px; height: 18px; margin-right: 4px; vertical-align: -3px; }
+
+/* Today task list display mode */
+.today-title-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin: 4px 0 10px; }
+.today-title-row .section-title { margin:0; flex:1; min-width:120px; }
+.today-mode-seg {
+  display:inline-flex; background: var(--gray-50); border: 2px solid var(--gray-100);
+  border-radius: 999px; padding: 3px; gap: 2px; flex-shrink:0;
+}
+.today-mode-seg button {
+  border:0; background:transparent; color: var(--gray-600); font-size:12px; font-weight:800;
+  padding: 6px 10px; border-radius:999px; cursor:pointer; white-space:nowrap;
+}
+.today-mode-seg button.active {
+  background: var(--card); color: var(--gray-900); box-shadow: var(--shadow);
+}
+html.dark .today-mode-seg { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); }
+html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); color: #fff; }
 
 /* Soft pastel task/goal color themes (10 presets) */
 .color-swatches { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
@@ -572,9 +587,16 @@ select {
         <div class="lbl">仲未做（最多 5）</div>
       </div>
     </div>
-    <div class="section-title">
-      <span>今日任務卡</span>
-      <span id="todayDateLabel"></span>
+    <div class="today-title-row">
+      <div class="section-title">
+        <span>今日任務卡</span>
+        <span id="todayDateLabel"></span>
+      </div>
+      <div class="today-mode-seg" id="todayModeSeg" role="group" aria-label="今日任務顯示">
+        <button type="button" data-today-mode="all" title="全部">全部</button>
+        <button type="button" data-today-mode="open_first" title="未做優先">未做先</button>
+        <button type="button" data-today-mode="hide_done" title="隱藏已完成">藏完成</button>
+      </div>
     </div>
     <div id="todayLimitWarn" class="limit-warn" hidden>未完成已經有 5 件——做完或者刪走先至可以加新嘅。</div>
     <div id="todayTaskList"></div>
@@ -753,7 +775,7 @@ select {
   <div class="capture-inner">
     <input id="quickCapture" type="text" placeholder="速記：諗到咩就寫…" autocomplete="off" />
     <button class="btn btn-primary btn-sm btn-ico-only" id="btnCaptureInbox" type="button" title="入收件箱"><img src="./icons/ui/inbox.png" alt="" /></button>
-    <button class="btn btn-secondary btn-sm btn-ico-only" id="btnCaptureToday" type="button" title="變今日任務"><img src="./icons/ui/check.png" alt="" /></button>
+    <button class="btn btn-secondary btn-sm btn-ico-only" id="btnCaptureToday" type="button" title="變今日任務"><img src="./icons/ui/sun.png" alt="" /></button>
   </div>
 </div>
 
@@ -783,19 +805,53 @@ select {
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2ZnBvYWlwcWtxeHp1YXFqdXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwNDMzNDIsImV4cCI6MjEwNzYxOTM0Mn0.zPmiuQPPA61QLdbJzkAAnUIkCEtKlFhdlEPiomVuJDY';
   const TZ = 'Asia/Hong_Kong';
   const MAX_TODAY = 5;
+  const TODAY_MODE_KEY = 'bobo-pos-today-mode';
+  const TODAY_MODES = ['all', 'open_first', 'hide_done'];
+  function getTodayMode() {
+    const v = localStorage.getItem(TODAY_MODE_KEY) || 'all';
+    return TODAY_MODES.includes(v) ? v : 'all';
+  }
+  function setTodayMode(mode) {
+    if (!TODAY_MODES.includes(mode)) return;
+    localStorage.setItem(TODAY_MODE_KEY, mode);
+  }
+  function syncTodayModeSeg() {
+    const mode = getTodayMode();
+    const seg = document.getElementById('todayModeSeg');
+    if (!seg) return;
+    seg.querySelectorAll('[data-today-mode]').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-today-mode') === mode);
+    });
+  }
+  function applyTodayMode(tasks) {
+    const mode = getTodayMode();
+    let list = tasks.slice();
+    if (mode === 'hide_done') {
+      list = list.filter(t => t.status !== 'done');
+    } else if (mode === 'open_first') {
+      list.sort((a, b) => {
+        const ao = a.status === 'open' ? 0 : 1;
+        const bo = b.status === 'open' ? 0 : 1;
+        if (ao !== bo) return ao - bo;
+        return 0;
+      });
+    }
+    return list;
+  }
 
-  /* Soft pastel theme colors (exactly 10) — muted for dark #131f24 */
+
+  /* Soft pastel theme colors (exactly 10) — brighter 粉系 for dark #131f24 */
   const COLOR_PALETTE = [
-    { id: 'rose',     label: '塵玫瑰', accent: '#C9A4A8', soft: 'rgba(201,164,168,.22)' },
-    { id: 'sage',     label: '鼠尾草', accent: '#A8B89A', soft: 'rgba(168,184,154,.22)' },
-    { id: 'mist',     label: '霧藍',   accent: '#9BB0C4', soft: 'rgba(155,176,196,.22)' },
-    { id: 'lavender', label: '灰薰衣草', accent: '#B0A8BE', soft: 'rgba(176,168,190,.22)' },
-    { id: 'sand',     label: '暖沙',   accent: '#C4B59A', soft: 'rgba(196,181,154,.22)' },
-    { id: 'teal',     label: '霧青',   accent: '#8FB0A8', soft: 'rgba(143,176,168,.22)' },
-    { id: 'peach',    label: '柔桃',   accent: '#D4B0A0', soft: 'rgba(212,176,160,.22)' },
-    { id: 'lilac',    label: '石板紫', accent: '#A8A0B8', soft: 'rgba(168,160,184,.22)' },
-    { id: 'mint',     label: '淡薄荷', accent: '#A0C4B0', soft: 'rgba(160,196,176,.22)' },
-    { id: 'apricot',  label: '柔杏',   accent: '#D4B898', soft: 'rgba(212,184,152,.22)' }
+    { id: 'rose',     label: '粉紅',   accent: '#FF8FB5', soft: 'rgba(255,143,181,.30)' },
+    { id: 'peach',    label: '蜜桃',   accent: '#FF9A7A', soft: 'rgba(255,154,122,.30)' },
+    { id: 'apricot',  label: '杏橙',   accent: '#FFB85C', soft: 'rgba(255,184,92,.30)' },
+    { id: 'sand',     label: '奶油黃', accent: '#FFE56A', soft: 'rgba(255,229,106,.28)' },
+    { id: 'mint',     label: '薄荷绿', accent: '#6FDBA8', soft: 'rgba(111,219,168,.30)' },
+    { id: 'mist',     label: '天藍',   accent: '#6EBEFF', soft: 'rgba(110,190,255,.30)' },
+    { id: 'lavender', label: '薰衣草', accent: '#B99AFF', soft: 'rgba(185,154,255,.30)' },
+    { id: 'lilac',    label: '紫丁香', accent: '#E892DC', soft: 'rgba(232,146,220,.30)' },
+    { id: 'teal',     label: '水藍',   accent: '#5CD9D0', soft: 'rgba(92,217,208,.30)' },
+    { id: 'sage',     label: '玫瑰粉', accent: '#FF6B9D', soft: 'rgba(255,107,157,.30)' }
   ];
   const COLOR_BY_ID = Object.fromEntries(COLOR_PALETTE.map(c => [c.id, c]));
   const KIND_DEFAULT_COLOR = { academy: 'mist', ai_terms: 'lilac', daily_review: 'sage' };
@@ -1302,17 +1358,21 @@ select {
     document.getElementById('todayLimitWarn').hidden = open < MAX_TODAY;
     document.getElementById('btnAddTask').disabled = open >= MAX_TODAY;
 
+    syncTodayModeSeg();
+    const shown = applyTodayMode(tasks);
     const list = document.getElementById('todayTaskList');
     if (!tasks.length) {
       list.innerHTML = '<div class="empty"><img class="empty-ico" src="./icons/ui/sun.png" alt="" /><h3>今日未有任務</h3><p>預設任務會自動出現；你亦可以自己加。</p></div>';
+    } else if (!shown.length) {
+      list.innerHTML = '<div class="empty"><img class="empty-ico" src="./icons/ui/sun.png" alt="" /><h3>已完成都收埋咗</h3><p>切去「全部」或者「未做先」可以再睇。</p></div>';
     } else {
-      list.innerHTML = tasks.map(t => {
+      list.innerHTML = shown.map(t => {
         const isDone = t.status === 'done';
         const colorId = resolveTaskColor(t);
         const tint = colorId ? ' theme-tint' : '';
         const goto = t.action_page && t.action_page !== 'none'
           ? `<button type="button" class="task-goto" data-goto="${esc(t.action_page)}">去頁面 →</button>` : '';
-        const checkInner = isDone ? '<img src="./icons/ui/check.png" alt="" />' : '';
+        const checkInner = isDone ? '✓' : '';
         return `<div class="task ${isDone ? 'done' : ''}${tint}" data-task="${t.id}" ${themeStyle(colorId)}>
           <button type="button" class="check" data-toggle="${t.id}" aria-label="完成">${checkInner}</button>
           <div class="task-body" data-detail="${t.id}">
@@ -1342,7 +1402,7 @@ select {
     box.innerHTML = state.captures.map(c => `
       <div class="inbox-item" data-cap="${c.id}">
         <p>${esc(c.body)}</p>
-        <button type="button" class="icon-btn" data-cap-today="${c.id}" title="變今日任務"><img src="./icons/ui/check.png" alt="" /></button>
+        <button type="button" class="icon-btn" data-cap-today="${c.id}" title="變今日任務"><img src="./icons/ui/sun.png" alt="" /></button>
         <button type="button" class="icon-btn" data-cap-dismiss="${c.id}" title="刪除"><img src="./icons/ui/trash.png" alt="" /></button>
       </div>`).join('');
   }
@@ -2075,6 +2135,18 @@ select {
     document.getElementById('btnAddGoal').onclick = () => { sfxClick(); openAddGoalModal(); };
     document.getElementById('btnCaptureInbox').onclick = () => addCapture(false);
     document.getElementById('btnCaptureToday').onclick = () => addCapture(true);
+    const todayModeSeg = document.getElementById('todayModeSeg');
+    if (todayModeSeg && !todayModeSeg.dataset.bound) {
+      todayModeSeg.dataset.bound = '1';
+      todayModeSeg.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-today-mode]');
+        if (!btn) return;
+        setTodayMode(btn.getAttribute('data-today-mode'));
+        syncTodayModeSeg();
+        renderToday();
+      });
+    }
+    syncTodayModeSeg();
     document.getElementById('quickCapture').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); addCapture(false); }
     });
