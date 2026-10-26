@@ -513,17 +513,24 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
 }
 .color-swatch.selected { border-color: var(--gray-900); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px currentColor; }
 .color-swatch.none { background: repeating-conic-gradient(var(--gray-200) 0% 25%, var(--card) 0% 50%) 50%/12px 12px; }
-.task.theme-tint {
-  border-left: 4px solid var(--theme-accent, var(--green));
-  background: linear-gradient(90deg, var(--theme-soft, transparent), var(--card) 48%);
+/* Style C: tinted border + right-side color dot (no left stripe / gradient) */
+.task.theme-tint,
+.goal-card.theme-tint {
+  background: var(--card);
+  border-color: color-mix(in srgb, var(--theme-accent, var(--green)) 70%, var(--gray-100));
+  box-shadow: var(--shadow), 0 0 0 1px color-mix(in srgb, var(--theme-accent, var(--green)) 25%, transparent);
+}
+.theme-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  margin-top: 9px; margin-left: auto;
+  background: var(--theme-accent, var(--gray-400));
 }
 .goal-card.theme-tint {
-  border-left: 4px solid var(--theme-accent, var(--green));
-  background: linear-gradient(135deg, var(--theme-soft, transparent), var(--card) 55%);
+  position: relative;
+  padding-right: 28px;
 }
-.goal-card .color-dot {
-  display:inline-block; width:10px; height:10px; border-radius:50%;
-  margin-right:6px; vertical-align:1px; background: var(--theme-accent, var(--gray-400));
+.goal-card .theme-dot {
+  position: absolute; top: 16px; right: 14px; margin: 0;
 }
 
 </style>
@@ -1373,6 +1380,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
         const goto = t.action_page && t.action_page !== 'none'
           ? `<button type="button" class="task-goto" data-goto="${esc(t.action_page)}">去頁面 →</button>` : '';
         const checkInner = isDone ? '✓' : '';
+        const dot = colorId ? '<span class="theme-dot" aria-hidden="true"></span>' : '';
         return `<div class="task ${isDone ? 'done' : ''}${tint}" data-task="${t.id}" ${themeStyle(colorId)}>
           <button type="button" class="check" data-toggle="${t.id}" aria-label="完成">${checkInner}</button>
           <div class="task-body" data-detail="${t.id}">
@@ -1384,6 +1392,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
             </div>
             ${goto}
           </div>
+          ${dot}
         </div>`;
       }).join('');
     }
@@ -1434,9 +1443,11 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       const tagLabel = g.track === 'main' ? '主線' : isHabit ? '習慣' : '支線';
       const colorId = (g.color && COLOR_BY_ID[g.color]) ? g.color : (KIND_DEFAULT_COLOR[g.kind] || null);
       const tint = colorId ? ' theme-tint' : '';
+      const dot = colorId ? '<span class="theme-dot" aria-hidden="true"></span>' : '';
       return `<div class="card goal-card${tint}" data-goal="${g.id}" ${themeStyle(colorId)}>
+        ${dot}
         <span class="track-tag ${tag}">${tagLabel}${g.is_system ? ' · 系統' : ''}${isHabit ? ' · ' + esc(month.label) : ''}</span>
-        <strong style="font-size:16px;display:block">${colorId ? '<span class="color-dot"></span>' : ''}${esc(g.title)}</strong>
+        <strong style="font-size:16px;display:block">${esc(g.title)}</strong>
         <p class="hint">${esc(g.description || '')}</p>
         <div class="progress-wrap">
           <div class="progress-bar"><i style="width:${barW}%"></i></div>
