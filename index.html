@@ -228,11 +228,17 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; width: 100%; min-width: 
 }
 .cal-day.empty { visibility: hidden; }
 .cal-day.today { border-color: var(--blue); }
-.cal-day.has-done { background: var(--green-soft); color: var(--green-dark); }
-.cal-day.streak-run { background: #C8F56A; color: var(--green-dark); }
-.cal-day.break-day { background: var(--gray-100); color: var(--gray-400); }
-.cal-day.selected { outline: 2px solid var(--green); outline-offset: 1px; }
-.cal-day .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green-dark); margin-top: 2px; flex-shrink: 0; }
+/* Calendar color style A: white/dark numbers + green dot; streak = inset green ring (no lime fill) */
+.cal-day.has-done { background: transparent; color: var(--gray-900); }
+.cal-day.streak-run {
+  background: transparent; color: var(--gray-900);
+  box-shadow: inset 0 0 0 2px rgba(88,204,2,.55);
+}
+.cal-day.break-day { background: var(--gray-50); color: var(--gray-400); }
+.cal-day.selected { outline: 2px solid var(--blue); outline-offset: 1px; }
+.cal-day .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); margin-top: 2px; flex-shrink: 0; }
+.cal-day.has-done .dot,
+.cal-day.streak-run .dot { background: var(--green); }
 #view-calendar { width: 100%; max-width: 100%; min-width: 0; overflow-x: hidden; }
 #dayDetail { width: 100%; max-width: 100%; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
 .timeline-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--gray-100); min-width: 0; }
@@ -415,7 +421,14 @@ select {
 .switch.on i { left: 24px; }
 [data-theme="dark"] .badge.sample-tag { background: #333; color: #bbb; }
 [data-theme="dark"] .badge { background: var(--gray-100); }
-[data-theme="dark"] .cal-day.break-day { background: var(--gray-100); color: var(--gray-400); }
+[data-theme="dark"] .cal-day.has-done { color: #fff; background: transparent; }
+[data-theme="dark"] .cal-day.streak-run {
+  color: #fff; background: transparent;
+  box-shadow: inset 0 0 0 2px rgba(88,204,2,.55);
+}
+[data-theme="dark"] .cal-day.break-day { color: #6b7f88; background: #1a252b; }
+[data-theme="dark"] .cal-day.selected.has-done,
+[data-theme="dark"] .cal-day.selected.streak-run { outline-color: var(--blue); }
 [data-theme="dark"] .toast { background: #000; }
 
 [data-theme="dark"] .card.soft-green { border-color: #3A6B1A; }
