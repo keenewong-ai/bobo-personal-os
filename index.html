@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#58CC02" />
+<title>BoBo Personal OS</title>
+<style>
+:root {
+  --green: #58CC02; --green-dark: #46A302; --green-soft: #D7FFB8;
+  --blue: #1CB0F6; --blue-soft: #DDF4FF; --orange: #FF9600; --orange-soft: #FFF4D6;
+  --red: #FF4B4B; --purple: #CE82FF; --purple-soft: #F2E0FF;
+  --gray-50: #F7F7F7; --gray-100: #E5E5E5; --gray-200: #D0D0D0; --gray-400: #AFAFAF;
+  --gray-600: #777; --gray-800: #3C3C3C; --gray-900: #1A1A1A; --card: #fff;
+  --shadow: 0 2px 0 rgba(0,0,0,.08); --shadow-lg: 0 8px 24px rgba(0,0,0,.1);
+  --radius: 16px; --radius-sm: 12px; --nav-h: 68px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --font: "Noto Sans TC", "PingFang HK", "Microsoft JhengHei", system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: var(--font); background: var(--gray-50); color: var(--gray-900);
+  min-height: 100dvh; padding-bottom: calc(var(--nav-h) + var(--safe-b) + 72px); line-height: 1.45;
+}
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; border: none; background: none; }
+input, textarea {
+  width: 100%; border: 2px solid var(--gray-100); border-radius: var(--radius-sm);
+  padding: 12px 14px; background: #fff; outline: none; transition: border-color .15s;
+}
+input:focus, textarea:focus { border-color: var(--green); }
+textarea { resize: vertical; min-height: 72px; }
+.app-header {
+  position: sticky; top: 0; z-index: 40; background: #fff;
+  border-bottom: 2px solid var(--gray-100); padding: 12px 16px 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-logo {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--green), #89E219);
+  display: grid; place-items: center; font-size: 20px; box-shadow: var(--shadow);
+}
+.brand h1 { font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
+.brand p { font-size: 12px; color: var(--gray-600); }
+.streak-pill {
+  display: flex; align-items: center; gap: 6px; background: var(--orange-soft);
+  color: #B45F00; font-weight: 800; font-size: 14px; padding: 8px 12px;
+  border-radius: 999px; border: 2px solid #FFD699;
+}
+main { max-width: 560px; margin: 0 auto; padding: 16px; }
+.view { display: none; animation: fadeIn .2s ease; }
+.view.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.section-title {
+  font-size: 13px; font-weight: 800; color: var(--gray-600); letter-spacing: .04em;
+  margin: 8px 0 10px; display: flex; align-items: center; justify-content: space-between;
+}
+.card {
+  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  border: 2px solid var(--gray-100); padding: 14px 16px; margin-bottom: 12px;
+}
+.card.soft-green { background: var(--green-soft); border-color: #B8F06A; }
+.card.soft-blue { background: var(--blue-soft); border-color: #A6E0F7; }
+.hero-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.stat {
+  background: #fff; border: 2px solid var(--gray-100); border-radius: var(--radius);
+  padding: 14px; text-align: center; box-shadow: var(--shadow);
+}
+.stat .num { font-size: 28px; font-weight: 900; color: var(--green-dark); line-height: 1; }
+.stat .lbl { font-size: 12px; color: var(--gray-600); margin-top: 4px; font-weight: 700; }
+.task {
+  display: flex; align-items: flex-start; gap: 12px; padding: 14px; background: #fff;
+  border: 2px solid var(--gray-100); border-radius: var(--radius); margin-bottom: 10px;
+  box-shadow: var(--shadow); transition: transform .12s;
+}
+.task:active { transform: scale(.985); }
+.task.done { opacity: .65; }
+.task.done .task-title { text-decoration: line-through; color: var(--gray-600); }
+.task.sample { border-style: dashed; }
+.check {
+  width: 28px; height: 28px; flex-shrink: 0; margin-top: 1px; border-radius: 50%;
+  border: 3px solid var(--gray-200); display: grid; place-items: center;
+}
+.task.done .check { background: var(--green); border-color: var(--green); color: #fff; font-size: 14px; font-weight: 900; }
+.task-body { flex: 1; min-width: 0; }
+.task-title { font-weight: 800; font-size: 15px; word-break: break-word; }
+.task-meta { font-size: 12px; color: var(--gray-600); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 6px; }
+.badge {
+  display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; background: var(--gray-50); color: var(--gray-600);
+}
+.badge.prio-high { background: #FFE5E5; color: var(--red); }
+.badge.prio-mid { background: var(--orange-soft); color: #B45F00; }
+.badge.sample-tag { background: #EEE; color: #666; }
+.task-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.icon-btn {
+  width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center;
+  color: var(--gray-400); font-size: 14px;
+}
+.icon-btn:hover { background: var(--gray-50); color: var(--gray-800); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 48px; padding: 0 18px; border-radius: 14px; font-weight: 800; font-size: 15px;
+  border: 2px solid transparent; box-shadow: 0 3px 0 rgba(0,0,0,.12);
+  transition: transform .1s, box-shadow .1s;
+}
+.btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.12); }
+.btn-primary { background: var(--green); color: #fff; border-color: var(--green-dark); box-shadow: 0 3px 0 var(--green-dark); }
+.btn-primary:active { box-shadow: 0 1px 0 var(--green-dark); }
+.btn-secondary { background: #fff; color: var(--gray-800); border-color: var(--gray-200); }
+.btn-ghost { background: transparent; color: var(--gray-600); box-shadow: none; border: none; min-height: 40px; }
+.btn-danger { background: var(--red); color: #fff; border-color: #E03A3A; box-shadow: 0 3px 0 #E03A3A; }
+.btn-block { width: 100%; }
+.btn-sm { min-height: 40px; font-size: 13px; padding: 0 14px; border-radius: 12px; }
+.empty {
+  text-align: center; padding: 28px 16px; background: #fff; border: 2px dashed var(--gray-200);
+  border-radius: var(--radius); margin-bottom: 12px;
+}
+.empty .emoji { font-size: 36px; margin-bottom: 8px; }
+.empty h3 { font-size: 16px; margin-bottom: 4px; }
+.empty p { font-size: 13px; color: var(--gray-600); margin-bottom: 14px; }
+.progress-wrap { margin: 8px 0 4px; }
+.progress-bar { height: 12px; background: var(--gray-100); border-radius: 999px; overflow: hidden; }
+.progress-bar > i {
+  display: block; height: 100%; background: linear-gradient(90deg, var(--green), #89E219);
+  border-radius: 999px; transition: width .35s ease;
+}
+.progress-label {
+  display: flex; justify-content: space-between; font-size: 12px; font-weight: 700;
+  color: var(--gray-600); margin-top: 4px;
+}
+.goal-card .track-tag {
+  font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px;
+  display: inline-block; margin-bottom: 6px;
+}
+.track-main { background: var(--green-soft); color: var(--green-dark); }
+.track-side { background: var(--purple-soft); color: #7A3CB8; }
+.lesson-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; }
+.lesson {
+  aspect-ratio: 1; border-radius: 12px; border: 2px solid var(--gray-100); background: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px; box-shadow: var(--shadow);
+}
+.lesson:active { transform: scale(.94); }
+.lesson.done { background: var(--green); border-color: var(--green-dark); color: #fff; box-shadow: 0 2px 0 var(--green-dark); }
+.lesson .ln { font-size: 10px; opacity: .75; font-weight: 700; }
+.ring-wrap { display: flex; align-items: center; gap: 16px; margin-bottom: 4px; }
+.ring { width: 88px; height: 88px; flex-shrink: 0; position: relative; }
+.ring svg { transform: rotate(-90deg); }
+.ring .pct {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-weight: 900; font-size: 18px; color: var(--green-dark);
+}
+.milestone {
+  display: flex; gap: 12px; align-items: flex-start; padding: 14px; background: #fff;
+  border: 2px solid var(--gray-100); border-radius: var(--radius); margin-bottom: 10px; box-shadow: var(--shadow);
+}
+.milestone.achieved { border-color: #B8F06A; background: #F6FFE9; }
+.ms-icon {
+  width: 44px; height: 44px; border-radius: 14px; background: var(--orange-soft);
+  display: grid; place-items: center; font-size: 22px; flex-shrink: 0;
+}
+.milestone.achieved .ms-icon { background: var(--green-soft); }
+.ms-body { flex: 1; min-width: 0; }
+.ms-title { font-weight: 800; font-size: 15px; }
+.ms-meta { font-size: 12px; color: var(--gray-600); margin-top: 4px; }
+.ms-due.overdue { color: var(--red); font-weight: 700; }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cal-nav h2 { font-size: 17px; font-weight: 800; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 10px; }
+.cal-dow { text-align: center; font-size: 11px; font-weight: 800; color: var(--gray-400); padding: 4px 0; }
+.cal-day {
+  aspect-ratio: 1; border-radius: 10px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+  color: var(--gray-800); border: 2px solid transparent;
+}
+.cal-day.empty { visibility: hidden; }
+.cal-day.today { border-color: var(--blue); }
+.cal-day.has-done { background: var(--green-soft); color: var(--green-dark); }
+.cal-day.streak-run { background: #C8F56A; color: var(--green-dark); }
+.cal-day.break-day { background: var(--gray-100); color: var(--gray-400); }
+.cal-day.selected { outline: 2px solid var(--green); outline-offset: 1px; }
+.cal-day .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green-dark); margin-top: 2px; }
+.timeline-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--gray-100); }
+.timeline-item:last-child { border-bottom: none; }
+.tl-time { width: 56px; flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--gray-600); padding-top: 2px; }
+.tl-body { flex: 1; font-weight: 700; font-size: 14px; }
+.capture-bar {
+  position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + var(--safe-b));
+  z-index: 45; padding: 8px 12px;
+  background: linear-gradient(transparent, rgba(247,247,247,.95) 30%); pointer-events: none;
+}
+.capture-inner {
+  max-width: 560px; margin: 0 auto; display: flex; gap: 8px; pointer-events: auto;
+  background: #fff; border: 2px solid var(--gray-100); border-radius: 16px; padding: 6px;
+  box-shadow: var(--shadow-lg);
+}
+.capture-inner input { border: none; padding: 10px 12px; box-shadow: none; flex: 1; }
+.capture-inner input:focus { border: none; }
+.bottom-nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+  height: calc(var(--nav-h) + var(--safe-b)); padding-bottom: var(--safe-b);
+  background: #fff; border-top: 2px solid var(--gray-100); display: flex; justify-content: center;
+}
+.nav-inner { max-width: 560px; width: 100%; display: grid; grid-template-columns: repeat(5, 1fr); }
+.nav-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; color: var(--gray-400); font-size: 11px; font-weight: 800; min-height: var(--nav-h);
+}
+.nav-btn .ico { font-size: 22px; line-height: 1; }
+.nav-btn.active { color: var(--green-dark); }
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.4);
+  display: none; align-items: flex-end; justify-content: center;
+  padding: 12px; padding-bottom: calc(12px + var(--safe-b));
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: #fff; width: 100%; max-width: 480px; border-radius: 20px 20px 16px 16px;
+  padding: 20px 18px 16px; max-height: min(88dvh, 640px); overflow: auto; box-shadow: var(--shadow-lg);
+  animation: slideUp .22s ease;
+}
+@keyframes slideUp { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal h2 { font-size: 18px; font-weight: 900; margin-bottom: 14px; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 12px; font-weight: 800; color: var(--gray-600); margin-bottom: 6px; }
+.field-row { display: flex; gap: 8px; }
+.field-row > * { flex: 1; }
+.modal-actions { display: flex; gap: 8px; margin-top: 8px; }
+.modal-actions .btn { flex: 1; }
+.mood-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+.mood-btn {
+  width: 48px; height: 48px; border-radius: 14px; font-size: 24px;
+  border: 2px solid var(--gray-100); background: #fff;
+}
+.mood-btn.selected { border-color: var(--green); background: var(--green-soft); }
+.inbox-item {
+  display: flex; gap: 10px; align-items: flex-start; padding: 12px;
+  border: 2px solid var(--gray-100); border-radius: var(--radius-sm); background: #fff; margin-bottom: 8px;
+}
+.inbox-item p { flex: 1; font-size: 14px; font-weight: 600; word-break: break-word; }
+.toast {
+  position: fixed; left: 50%; bottom: calc(var(--nav-h) + var(--safe-b) + 70px);
+  transform: translateX(-50%) translateY(12px); background: var(--gray-900); color: #fff;
+  padding: 10px 16px; border-radius: 999px; font-size: 13px; font-weight: 700; z-index: 200;
+  opacity: 0; pointer-events: none; transition: .25s; white-space: nowrap;
+  max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.celeb {
+  position: fixed; inset: 0; z-index: 180; pointer-events: none;
+  display: none; align-items: center; justify-content: center;
+}
+.celeb.show { display: flex; }
+.celeb-burst { font-size: 64px; animation: pop .6s ease; filter: drop-shadow(0 8px 16px rgba(0,0,0,.15)); }
+@keyframes pop {
+  0% { transform: scale(.3); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+.more-list { display: flex; flex-direction: column; gap: 8px; }
+.more-link {
+  display: flex; align-items: center; gap: 12px; padding: 16px; background: #fff;
+  border: 2px solid var(--gray-100); border-radius: var(--radius); box-shadow: var(--shadow);
+  text-align: left; width: 100%;
+}
+.more-link .ico {
+  width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center;
+  font-size: 22px; background: var(--gray-50);
+}
+.more-link strong { display: block; font-size: 15px; }
+.more-link span { font-size: 12px; color: var(--gray-600); }
+.hint { font-size: 12px; color: var(--gray-600); margin-top: 4px; }
+.limit-warn {
+  background: var(--orange-soft); border: 2px solid #FFD699; border-radius: var(--radius-sm);
+  padding: 10px 12px; font-size: 13px; font-weight: 700; color: #8A4B00; margin-bottom: 12px;
+}
+select {
+  width: 100%; border: 2px solid var(--gray-100); border-radius: var(--radius-sm);
+  padding: 12px 14px; background: #fff;
+}
+@media (min-width: 640px) {
+  .modal-backdrop { align-items: center; }
+  .modal { border-radius: 20px; }
+  main { padding: 20px; }
+}
+</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-logo">🦉</div>
+    <div>
+      <h1>BoBo OS</h1>
+      <p>睇到 · 做到 · 記得</p>
+    </div>
+  </div>
+  <div class="streak-pill" id="streakPill" title="連續日子">
+    <span class="fire">🔥</span>
+    <span id="streakNum">0</span>
+  </div>
+</header>
+
+<main>
+  <section id="view-today" class="view active">
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="num" id="todayDoneCount">0</div>
+        <div class="lbl">今日完成</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="todayLeftCount">0</div>
+        <div class="lbl">仲未做（最多 3）</div>
+      </div>
+    </div>
+    <div class="section-title">
+      <span>今日任務卡</span>
+      <span id="todayDateLabel"></span>
+    </div>
+    <div id="todayLimitWarn" class="limit-warn" hidden>今日已經有 3 件任務——做完或者刪走先至可以加新嘅。</div>
+    <div id="todayTaskList"></div>
+    <button class="btn btn-primary btn-block" id="btnAddTask" type="button">＋ 加今日任務</button>
+    <div class="section-title" style="margin-top:20px"><span>速記收件箱</span><span id="inboxCount"></span></div>
+    <div id="inboxList"></div>
+  </section>
+
+  <section id="view-goals" class="view">
+    <div class="section-title"><span>主線</span><span>Main</span></div>
+    <div id="goalsMain"></div>
+    <div class="section-title"><span>支線</span><span>Side</span></div>
+    <div id="goalsSide"></div>
+    <button class="btn btn-secondary btn-block" id="btnAddGoal" type="button">＋ 加目標</button>
+  </section>
+
+  <section id="view-course" class="view">
+    <div class="card soft-green">
+      <div class="ring-wrap">
+        <div class="ring">
+          <svg width="88" height="88" viewBox="0 0 88 88">
+            <circle cx="44" cy="44" r="36" fill="none" stroke="#E5E5E5" stroke-width="10"/>
+            <circle id="courseRing" cx="44" cy="44" r="36" fill="none" stroke="#58CC02" stroke-width="10"
+              stroke-linecap="round" stroke-dasharray="226.2" stroke-dashoffset="226.2"/>
+          </svg>
+          <div class="pct" id="coursePct">0%</div>
+        </div>
+        <div>
+          <h2 style="font-size:18px;font-weight:900;margin-bottom:4px">Claude Academy</h2>
+          <p style="font-size:13px;color:var(--gray-600);font-weight:700" id="courseDoneLabel">0 / 67 課</p>
+          <p class="hint">撳一課 → 標記完成 / 取消</p>
+        </div>
+      </div>
+    </div>
+    <div class="section-title"><span>67 課進度</span></div>
+    <div class="lesson-grid" id="lessonGrid"></div>
+  </section>
+
+  <section id="view-milestones" class="view">
+    <div class="section-title"><span>里程碑牆</span></div>
+    <div id="milestoneList"></div>
+    <button class="btn btn-secondary btn-block" id="btnAddMilestone" type="button">＋ 加里程碑</button>
+  </section>
+
+  <section id="view-more" class="view">
+    <div class="more-list">
+      <button class="more-link" type="button" data-open="review">
+        <div class="ico">🌙</div>
+        <div><strong>每日回顧</strong><span>5 分鐘收工：完成、卡住、聽日第一件</span></div>
+      </button>
+      <button class="more-link" type="button" data-open="calendar">
+        <div class="ico">📅</div>
+        <div><strong>完成日曆</strong><span>睇返邊日有進度、連續同斷線</span></div>
+      </button>
+      <button class="more-link" type="button" data-open="settings">
+        <div class="ico">⚙️</div>
+        <div><strong>設定</strong><span>匯出 / 重設示範資料</span></div>
+      </button>
+    </div>
+  </section>
+
+  <section id="view-review" class="view">
+    <button class="btn btn-ghost" type="button" data-back="more">← 返更多</button>
+    <div class="card soft-blue" style="margin-top:8px">
+      <h2 style="font-size:17px;font-weight:900;margin-bottom:4px">每日 5 分鐘回顧</h2>
+      <p class="hint" id="reviewDateLabel"></p>
+    </div>
+    <div class="field">
+      <label>今日做咗咩？</label>
+      <textarea id="reviewDone" placeholder="寫低完成咗嘅事…"></textarea>
+    </div>
+    <div class="field">
+      <label>邊度卡住？</label>
+      <textarea id="reviewStuck" placeholder="卡關、拖延、唔清楚…"></textarea>
+    </div>
+    <div class="field">
+      <label>聽日第一件事先做咩？</label>
+      <input id="reviewTomorrow" placeholder="聽日一開工就做…" />
+    </div>
+    <div class="field">
+      <label>心情</label>
+      <div class="mood-picker" id="moodPicker">
+        <button type="button" class="mood-btn" data-mood="😄">😄</button>
+        <button type="button" class="mood-btn" data-mood="🙂">🙂</button>
+        <button type="button" class="mood-btn" data-mood="😐">😐</button>
+        <button type="button" class="mood-btn" data-mood="😔">😔</button>
+        <button type="button" class="mood-btn" data-mood="😤">😤</button>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" id="btnSaveReview" type="button">儲存回顧</button>
+    <div class="section-title" style="margin-top:20px"><span>近幾日回顧</span></div>
+    <div id="reviewHistory"></div>
+  </section>
+
+  <section id="view-calendar" class="view">
+    <button class="btn btn-ghost" type="button" data-back="more">← 返更多</button>
+    <div class="cal-nav" style="margin-top:8px">
+      <button class="icon-btn" id="calPrev" type="button" aria-label="上月">◀</button>
+      <h2 id="calMonthLabel"></h2>
+      <button class="icon-btn" id="calNext" type="button" aria-label="下月">▶</button>
+    </div>
+    <div class="cal-grid" id="calDows"></div>
+    <div class="cal-grid" id="calDays"></div>
+    <div class="card" id="dayDetail">
+      <h3 style="font-size:15px;font-weight:900;margin-bottom:8px" id="dayDetailTitle">揀一日睇詳情</h3>
+      <div id="dayDetailBody"><p class="hint">綠色＝有完成；連續綠＝streak；灰＝斷線日</p></div>
+    </div>
+  </section>
+
+  <section id="view-settings" class="view">
+    <button class="btn btn-ghost" type="button" data-back="more">← 返更多</button>
+    <div class="card" style="margin-top:8px">
+      <h2 style="font-size:17px;font-weight:900;margin-bottom:8px">設定</h2>
+      <p class="hint" style="margin-bottom:12px">所有資料只存喺呢部裝置嘅 localStorage（前綴 bobo-pos-）。</p>
+      <button class="btn btn-secondary btn-block" id="btnExport" type="button" style="margin-bottom:8px">匯出 JSON</button>
+      <button class="btn btn-secondary btn-block" id="btnReseed" type="button" style="margin-bottom:8px">重新載入示範資料</button>
+      <button class="btn btn-danger btn-block" id="btnWipe" type="button">清空所有資料</button>
+    </div>
+  </section>
+</main>
+
+<div class="capture-bar" id="captureBar">
+  <div class="capture-inner">
+    <input id="quickCapture" type="text" placeholder="速記：諗到咩就寫…" autocomplete="off" />
+    <button class="btn btn-primary btn-sm" id="btnCaptureInbox" type="button" title="入收件箱">📥</button>
+    <button class="btn btn-secondary btn-sm" id="btnCaptureToday" type="button" title="變今日任務">✅</button>
+  </div>
+</div>
+
+<nav class="bottom-nav" aria-label="主導航">
+  <div class="nav-inner">
+    <button class="nav-btn active" data-view="today" type="button"><span class="ico">☀️</span>今日</button>
+    <button class="nav-btn" data-view="goals" type="button"><span class="ico">🎯</span>目標</button>
+    <button class="nav-btn" data-view="course" type="button"><span class="ico">📚</span>課程</button>
+    <button class="nav-btn" data-view="milestones" type="button"><span class="ico">🏆</span>里程碑</button>
+    <button class="nav-btn" data-view="more" type="button"><span class="ico">⋯</span>更多</button>
+  </div>
+</nav>
+
+<div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
+  <div class="modal" id="modal"></div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="celeb" id="celeb"><div class="celeb-burst">🎉</div></div>
+
+<script>
+(function () {
+  'use strict';
+
+  const PREFIX = 'bobo-pos-';
+  const KEY = PREFIX + 'v1';
+  const TZ = 'Asia/Hong_Kong';
+  const MAX_TODAY = 3;
+  const LESSON_COUNT = 67;
+
+  function now() { return new Date(); }
+  function hkParts(d) {
+    const fmt = new Intl.DateTimeFormat('en-CA', {
+      timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+    return Object.fromEntries(fmt.formatToParts(d).filter(p => p.type !== 'literal').map(p => [p.type, p.value]));
+  }
+  function todayStr(d) {
+    const p = hkParts(d || now());
+    return p.year + '-' + p.month + '-' + p.day;
+  }
+  function timeStr(iso) {
+    const p = hkParts(new Date(iso));
+    return p.hour + ':' + p.minute;
+  }
+  function formatDisplayDate(ymd) {
+    const [y, m, d] = ymd.split('-');
+    return y + '年' + Number(m) + '月' + Number(d) + '日';
+  }
+  function addDaysYmd(ymd, n) {
+    const [y, m, d] = ymd.split('-').map(Number);
+    const utc = Date.UTC(y, m - 1, d) + n * 86400000;
+    const tmp = new Date(utc);
+    return tmp.getUTCFullYear() + '-' + String(tmp.getUTCMonth() + 1).padStart(2, '0') + '-' + String(tmp.getUTCDate()).padStart(2, '0');
+  }
+  function uid() {
+    return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+  }
+
+  function buildLessons() {
+    const titles = [
+      '歡迎同環境準備', 'Prompt 基礎', '系統提示詞', 'Messages API',
+      'Temperature 同輸出控制', 'Tokens 同成本', 'Streaming 回應', 'Tool / Function calling',
+      'JSON Mode', '錯誤處理', 'Rate limits', '安全同拒答',
+      '長上下文', 'RAG 入門', 'Embeddings', 'Chunking 策略',
+      '向量資料庫', 'Evaluation 基礎', 'Prompt 測試', 'Few-shot 設計',
+      'Chain-of-thought', 'Agent 思維', '多步工具鏈', '記憶設計',
+      'Session 管理', 'Claude Projects', 'Artifacts 思維', '電腦使用概覽',
+      'Vision 入門', '文件理解', 'Code 助手模式', '重構工作流',
+      '測試生成', '文件撰寫', 'API 設計協作', '客戶需求訪談',
+      '報價同範圍', '交付清單', 'Freelance 產品化', 'Portfolio case',
+      'Landing page copy', 'Demo 腳本', 'WhatsApp / 客服 bot', '內部知識庫',
+      '自動化工作流', 'Zapier / n8n 概念', 'Webhook 整合', 'Auth 注意事項',
+      'Logging 同監察', '成本儀表板', 'A/B prompts', '使用者回饋循環',
+      '心理：拖延拆解', '心理：深度工作', '心理：失敗復盤', '心理：身份轉換',
+      'Blender：界面導覽', 'Blender：建模基礎', 'Blender：材質燈光', 'Blender：渲染輸出',
+      '角色：Nendoroid 比例', '角色：頭部造型', '角色：上色風格', '角色：品牌應用',
+      '總複習：LLM 專案', '總複習：Freelance 交付', '結業：下一個 Sprint'
+    ];
+    while (titles.length < LESSON_COUNT) titles.push('第 ' + (titles.length + 1) + ' 課');
+    return titles.slice(0, LESSON_COUNT).map((t, i) => ({ n: i + 1, title: t, done: false, doneAt: null }));
+  }
+
+  function seedData() {
+    const t = todayStr();
+    const y1 = addDaysYmd(t, -1);
+    const y2 = addDaysYmd(t, -2);
+    const y3 = addDaysYmd(t, -4);
+    return {
+      version: 1,
+      seededAt: now().toISOString(),
+      tasks: [
+        { id: uid(), title: '讀 Claude Academy 第 1–2 課', emoji: '📚', priority: 'high', date: t, done: false, doneAt: null, goalId: null, sample: true, createdAt: now().toISOString() },
+        { id: uid(), title: '草擬一個 Freelance AI 整合服務一頁紙', emoji: '📝', priority: 'mid', date: t, done: false, doneAt: null, goalId: null, sample: true, createdAt: now().toISOString() },
+        { id: uid(), title: 'Blender：開個新 scene 練建模 20 分鐘', emoji: '🎨', priority: 'low', date: t, done: false, doneAt: null, goalId: null, sample: true, createdAt: now().toISOString() },
+        { id: uid(), title: '【示範】寫完履歷 AI 專案段落', emoji: '✅', priority: 'mid', date: y1, done: true, doneAt: y1 + 'T14:30:00+08:00', goalId: null, sample: true, createdAt: y1 + 'T09:00:00+08:00' },
+        { id: uid(), title: '【示範】練 Prompt 30 分鐘', emoji: '🧠', priority: 'low', date: y2, done: true, doneAt: y2 + 'T20:10:00+08:00', goalId: null, sample: true, createdAt: y2 + 'T10:00:00+08:00' },
+        { id: uid(), title: '【示範】早期進度日', emoji: '🌱', priority: 'low', date: y3, done: true, doneAt: y3 + 'T18:00:00+08:00', goalId: null, sample: true, createdAt: y3 + 'T11:00:00+08:00' }
+      ],
+      goals: [
+        { id: 'g_main_claude', title: '掌握 Anthropic Claude / LLM API', track: 'main', progress: 8, target: 100, unit: '%', note: '主線：Freelance AI 整合', sample: true },
+        { id: 'g_main_freelance', title: '接第一單 AI 整合 freelance', track: 'main', progress: 1, target: 5, unit: '里程碑', note: '報價→demo→交付', sample: true },
+        { id: 'g_side_blender', title: 'Blender 3D 基礎', track: 'side', progress: 2, target: 10, unit: '練習', note: '支線：建模同渲染', sample: true },
+        { id: 'g_side_psych', title: '心理學內容輸出', track: 'side', progress: 0, target: 12, unit: '篇', note: '支線：內容創作', sample: true },
+        { id: 'g_side_nendo', title: 'Nendoroid 風格品牌公仔概念', track: 'side', progress: 1, target: 6, unit: '步驟', note: '支線：個人品牌形象', sample: true }
+      ],
+      lessons: (function () {
+        const ls = buildLessons();
+        ls[0].done = true; ls[0].doneAt = y2 + 'T21:00:00+08:00';
+        ls[1].done = true; ls[1].doneAt = y1 + 'T21:30:00+08:00';
+        return ls;
+      })(),
+      milestones: [
+        { id: uid(), title: '完成 Claude Academy 首 10 課', due: addDaysYmd(t, 14), achieved: false, achievedAt: null, emoji: '📘', sample: true },
+        { id: uid(), title: '上線 Freelance 服務一頁介紹', due: addDaysYmd(t, 21), achieved: false, achievedAt: null, emoji: '🚀', sample: true },
+        { id: uid(), title: '連續 7 日有進度', due: addDaysYmd(t, 7), achieved: false, achievedAt: null, emoji: '🔥', sample: true, autoKey: 'streak7' },
+        { id: uid(), title: '【示範】完成裁員後第一個學習日', due: y3, achieved: true, achievedAt: y3 + 'T19:00:00+08:00', emoji: '💪', sample: true }
+      ],
+      inbox: [
+        { id: uid(), text: '【示範】客服 bot + WhatsApp 整合點報價？', createdAt: now().toISOString(), sample: true },
+        { id: uid(), text: '【示範】研究 n8n 接 Claude API', createdAt: now().toISOString(), sample: true }
+      ],
+      reviews: {
+        [y1]: { done: '讀咗兩課 Prompt、改咗履歷一段', stuck: '報價範圍仲未夠清晰', tomorrow: '寫服務一頁紙大綱', mood: '🙂', savedAt: y1 + 'T22:00:00+08:00' }
+      },
+      activityDays: {}
+    };
+  }
+
+  let state = null;
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) {
+        state = seedData();
+        rollIncompleteTasks();
+        recomputeActivity();
+        save();
+        return;
+      }
+      state = JSON.parse(raw);
+      if (!state.lessons || state.lessons.length !== LESSON_COUNT) {
+        const doneMap = {};
+        (state.lessons || []).forEach(l => { doneMap[l.n] = l; });
+        state.lessons = buildLessons().map(l => doneMap[l.n] ? Object.assign({}, l, { done: !!doneMap[l.n].done, doneAt: doneMap[l.n].doneAt || null }) : l);
+      }
+      if (!state.reviews) state.reviews = {};
+      if (!state.inbox) state.inbox = [];
+      rollIncompleteTasks();
+      recomputeActivity();
+      save();
+    } catch (e) {
+      console.error(e);
+      state = seedData();
+      recomputeActivity();
+      save();
+    }
+  }
+
+  function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+
+  function rollIncompleteTasks() {
+    const t = todayStr();
+    state.tasks.forEach(task => {
+      if (!task.done && task.date < t) {
+        task.date = t;
+        task.rolled = true;
+      }
+    });
+  }
+
+  function daysWithProgress() {
+    const set = new Set();
+    state.tasks.forEach(task => {
+      if (task.done && task.doneAt) set.add(todayStr(new Date(task.doneAt)));
+      else if (task.done && task.date) set.add(task.date);
+    });
+    state.lessons.forEach(l => {
+      if (l.done && l.doneAt) set.add(todayStr(new Date(l.doneAt)));
+    });
+    Object.keys(state.reviews || {}).forEach(d => set.add(d));
+    return set;
+  }
+
+  function recomputeActivity() {
+    state.activityDays = {};
+    daysWithProgress().forEach(d => { state.activityDays[d] = true; });
+  }
+
+  function calcStreak() {
+    const days = daysWithProgress();
+    let streak = 0;
+    let cursor = todayStr();
+    if (!days.has(cursor)) cursor = addDaysYmd(cursor, -1);
+    while (days.has(cursor)) {
+      streak++;
+      cursor = addDaysYmd(cursor, -1);
+    }
+    return streak;
+  }
+
+  function todayOpenTasks() {
+    const t = todayStr();
+    return state.tasks.filter(x => x.date === t && !x.done);
+  }
+  function todayDoneTasks() {
+    const t = todayStr();
+    return state.tasks.filter(x => {
+      if (!x.done) return false;
+      if (x.doneAt) return todayStr(new Date(x.doneAt)) === t;
+      return x.date === t;
+    });
+  }
+
+  function checkAutoMilestones() {
+    const streak = calcStreak();
+    const doneLessons = state.lessons.filter(l => l.done).length;
+    state.milestones.forEach(m => {
+      if (m.achieved) return;
+      if (m.autoKey === 'streak7' && streak >= 7) {
+        m.achieved = true;
+        m.achievedAt = now().toISOString();
+        toast('🏆 解鎖：連續 7 日！');
+        celebrate();
+      }
+    });
+    const first10 = state.milestones.find(m => m.title && m.title.indexOf('首 10') !== -1);
+    if (first10 && !first10.achieved && doneLessons >= 10) {
+      first10.achieved = true;
+      first10.achievedAt = now().toISOString();
+      toast('🏆 完成首 10 課！');
+      celebrate();
+    }
+  }
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $all(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
+
+  function toast(msg) {
+    const el = $('#toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { el.classList.remove('show'); }, 2200);
+  }
+
+  function celebrate() {
+    const el = $('#celeb');
+    el.classList.add('show');
+    clearTimeout(celebrate._t);
+    celebrate._t = setTimeout(function () { el.classList.remove('show'); }, 650);
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function prioLabel(p) {
+    if (p === 'high') return '<span class="badge prio-high">高優先</span>';
+    if (p === 'mid') return '<span class="badge prio-mid">中</span>';
+    return '<span class="badge">低</span>';
+  }
+
+  function markProgressToday() {
+    state.activityDays[todayStr()] = true;
+    recomputeActivity();
+  }
+
+  function renderAll() {
+    $('#streakNum').textContent = String(calcStreak());
+    $('#todayDateLabel').textContent = formatDisplayDate(todayStr());
+    renderToday();
+    renderGoals();
+    renderCourse();
+    renderMilestones();
+    renderInbox();
+    renderReview();
+    renderCalendar();
+  }
+
+  function renderToday() {
+    const open = todayOpenTasks();
+    const done = todayDoneTasks();
+    $('#todayDoneCount').textContent = String(done.length);
+    $('#todayLeftCount').textContent = String(open.length);
+    const warn = $('#todayLimitWarn');
+    const atLimit = open.length >= MAX_TODAY;
+    warn.hidden = !atLimit;
+    $('#btnAddTask').disabled = atLimit;
+    $('#btnAddTask').style.opacity = atLimit ? '.5' : '1';
+
+    const list = $('#todayTaskList');
+    const items = open.concat(done);
+    if (!items.length) {
+      list.innerHTML = '<div class="empty"><div class="emoji">☀️</div><h3>今日仲未有任務</h3><p>每日最多 3 件——揀最重要嘅先。</p><button class="btn btn-primary" type="button" id="emptyAddTask">＋ 加第一件</button></div>';
+      const b = $('#emptyAddTask');
+      if (b) b.onclick = function () { openTaskModal(); };
+      return;
+    }
+    list.innerHTML = items.map(function (task) {
+      return '<div class="task ' + (task.done ? 'done' : '') + ' ' + (task.sample ? 'sample' : '') + '" data-id="' + esc(task.id) + '">' +
+        '<button class="check" type="button" data-act="toggle" aria-label="完成">' + (task.done ? '✓' : '') + '</button>' +
+        '<div class="task-body"><div class="task-title">' + (task.emoji ? esc(task.emoji) + ' ' : '') + esc(task.title) + '</div>' +
+        '<div class="task-meta">' + prioLabel(task.priority) +
+        (task.sample ? '<span class="badge sample-tag">示範</span>' : '') +
+        (task.rolled ? '<span class="badge">由舊日滾入</span>' : '') +
+        (task.done && task.doneAt ? '<span class="badge">' + esc(timeStr(task.doneAt)) + '</span>' : '') +
+        '</div></div>' +
+        '<div class="task-actions">' +
+        '<button class="icon-btn" type="button" data-act="edit" title="改">✏️</button>' +
+        '<button class="icon-btn" type="button" data-act="del" title="刪">🗑️</button>' +
+        '</div></div>';
+    }).join('');
+
+    list.onclick = function (e) {
+      const btn = e.target.closest('[data-act]');
+      const row = e.target.closest('.task');
+      if (!btn || !row) return;
+      const id = row.getAttribute('data-id');
+      const act = btn.getAttribute('data-act');
+      if (act === 'toggle') toggleTask(id);
+      if (act === 'edit') openTaskModal(id);
+      if (act === 'del') deleteTask(id);
+    };
+  }
+
+  function renderInbox() {
+    const box = $('#inboxList');
+    const items = state.inbox || [];
+    $('#inboxCount').textContent = items.length ? items.length + ' 則' : '';
+    if (!items.length) {
+      box.innerHTML = '<div class="empty" style="padding:16px"><p style="margin:0">速記會出現喺度，之後再分類。</p></div>';
+      return;
+    }
+    box.innerHTML = items.map(function (it) {
+      return '<div class="inbox-item" data-id="' + esc(it.id) + '"><p>' + esc(it.text) +
+        (it.sample ? ' <span class="badge sample-tag">示範</span>' : '') + '</p>' +
+        '<button class="btn btn-sm btn-secondary" type="button" data-act="to-today">→今日</button>' +
+        '<button class="icon-btn" type="button" data-act="del-inbox">🗑️</button></div>';
+    }).join('');
+    box.onclick = function (e) {
+      const row = e.target.closest('.inbox-item');
+      const btn = e.target.closest('[data-act]');
+      if (!row || !btn) return;
+      const id = row.getAttribute('data-id');
+      if (btn.getAttribute('data-act') === 'del-inbox') {
+        state.inbox = state.inbox.filter(function (x) { return x.id !== id; });
+        save(); renderInbox(); toast('已刪速記');
+      }
+      if (btn.getAttribute('data-act') === 'to-today') promoteInboxToToday(id);
+    };
+  }
+
+  function renderGoals() {
+    const main = state.goals.filter(function (g) { return g.track === 'main'; });
+    const side = state.goals.filter(function (g) { return g.track === 'side'; });
+    function paint(arr) {
+      if (!arr.length) return '<div class="empty"><p>未有目標</p></div>';
+      return arr.map(function (g) {
+        const pct = g.target ? Math.min(100, Math.round((g.progress / g.target) * 100)) : 0;
+        return '<div class="card goal-card" data-id="' + esc(g.id) + '">' +
+          '<span class="track-tag ' + (g.track === 'main' ? 'track-main' : 'track-side') + '">' +
+          (g.track === 'main' ? '主線' : '支線') + '</span> ' +
+          (g.sample ? '<span class="badge sample-tag">示範</span>' : '') +
+          '<div style="font-weight:900;font-size:15px;margin:4px 0">' + esc(g.title) + '</div>' +
+          (g.note ? '<div class="hint">' + esc(g.note) + '</div>' : '') +
+          '<div class="progress-wrap"><div class="progress-bar"><i style="width:' + pct + '%"></i></div>' +
+          '<div class="progress-label"><span>' + esc(g.progress) + ' / ' + esc(g.target) + ' ' + esc(g.unit || '') +
+          '</span><span>' + pct + '%</span></div></div>' +
+          '<div style="display:flex;gap:6px;margin-top:10px">' +
+          '<button class="btn btn-sm btn-secondary" type="button" data-act="goal-minus">−</button>' +
+          '<button class="btn btn-sm btn-primary" type="button" data-act="goal-plus">＋進度</button>' +
+          '<button class="btn btn-sm btn-ghost" type="button" data-act="goal-edit">改</button>' +
+          '<button class="btn btn-sm btn-ghost" type="button" data-act="goal-del">刪</button></div></div>';
+      }).join('');
+    }
+    $('#goalsMain').innerHTML = paint(main);
+    $('#goalsSide').innerHTML = paint(side);
+    function handler(e) {
+      const card = e.target.closest('.goal-card');
+      const btn = e.target.closest('[data-act]');
+      if (!card || !btn) return;
+      const id = card.getAttribute('data-id');
+      const g = state.goals.find(function (x) { return x.id === id; });
+      if (!g) return;
+      const act = btn.getAttribute('data-act');
+      if (act === 'goal-plus') {
+        g.progress = Math.min(g.target, Number(g.progress) + 1);
+        markProgressToday(); save(); checkAutoMilestones(); renderAll(); celebrate(); toast('進度 +1');
+      }
+      if (act === 'goal-minus') {
+        g.progress = Math.max(0, Number(g.progress) - 1);
+        save(); renderGoals();
+      }
+      if (act === 'goal-edit') openGoalModal(id);
+      if (act === 'goal-del') {
+        if (confirm('刪呢個目標？')) {
+          state.goals = state.goals.filter(function (x) { return x.id !== id; });
+          save(); renderGoals(); toast('已刪目標');
+        }
+      }
+    }
+    $('#goalsMain').onclick = handler;
+    $('#goalsSide').onclick = handler;
+  }
+
+  function renderCourse() {
+    const done = state.lessons.filter(function (l) { return l.done; }).length;
+    const pct = Math.round((done / LESSON_COUNT) * 100);
+    $('#coursePct').textContent = pct + '%';
+    $('#courseDoneLabel').textContent = done + ' / ' + LESSON_COUNT + ' 課';
+    const circ = 2 * Math.PI * 36;
+    $('#courseRing').setAttribute('stroke-dashoffset', String(circ * (1 - done / LESSON_COUNT)));
+    $('#lessonGrid').innerHTML = state.lessons.map(function (l) {
+      return '<button type="button" class="lesson ' + (l.done ? 'done' : '') + '" data-n="' + l.n + '" title="' + esc(l.title) + '">' +
+        '<span>' + l.n + '</span><span class="ln">' + (l.done ? '✓' : '') + '</span></button>';
+    }).join('');
+    $('#lessonGrid').onclick = function (e) {
+      const b = e.target.closest('.lesson');
+      if (!b) return;
+      const n = Number(b.getAttribute('data-n'));
+      const lesson = state.lessons.find(function (x) { return x.n === n; });
+      if (!lesson) return;
+      lesson.done = !lesson.done;
+      lesson.doneAt = lesson.done ? now().toISOString() : null;
+      if (lesson.done) {
+        markProgressToday(); celebrate();
+        toast('完成：第 ' + n + ' 課 · ' + lesson.title);
+      } else {
+        toast('取消：第 ' + n + ' 課');
+      }
+      recomputeActivity(); checkAutoMilestones(); save(); renderAll();
+    };
+  }
+
+  function renderMilestones() {
+    const list = $('#milestoneList');
+    const sorted = state.milestones.slice().sort(function (a, b) {
+      if (a.achieved !== b.achieved) return a.achieved ? 1 : -1;
+      return String(a.due || '').localeCompare(String(b.due || ''));
+    });
+    if (!sorted.length) {
+      list.innerHTML = '<div class="empty"><div class="emoji">🏆</div><h3>未有里程碑</h3><p>將大目標拆成有截止日期嘅小勝仗。</p></div>';
+      return;
+    }
+    const t = todayStr();
+    list.innerHTML = sorted.map(function (m) {
+      const overdue = !m.achieved && m.due && m.due < t;
+      return '<div class="milestone ' + (m.achieved ? 'achieved' : '') + '" data-id="' + esc(m.id) + '">' +
+        '<div class="ms-icon">' + esc(m.emoji || '🏁') + '</div><div class="ms-body">' +
+        '<div class="ms-title">' + esc(m.title) + ' ' + (m.sample ? '<span class="badge sample-tag">示範</span>' : '') + '</div>' +
+        '<div class="ms-meta">' + (m.achieved
+          ? ('已達成 · ' + (m.achievedAt ? formatDisplayDate(todayStr(new Date(m.achievedAt))) : ''))
+          : ('<span class="ms-due ' + (overdue ? 'overdue' : '') + '">到期 ' + esc(m.due || '未定') + (overdue ? ' · 過期' : '') + '</span>')) +
+        '</div><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">' +
+        (m.achieved
+          ? '<button class="btn btn-sm btn-ghost" type="button" data-act="ms-undo">取消達成</button>'
+          : '<button class="btn btn-sm btn-primary" type="button" data-act="ms-done">達成！</button>') +
+        '<button class="btn btn-sm btn-ghost" type="button" data-act="ms-edit">改</button>' +
+        '<button class="btn btn-sm btn-ghost" type="button" data-act="ms-del">刪</button></div></div></div>';
+    }).join('');
+    list.onclick = function (e) {
+      const row = e.target.closest('.milestone');
+      const btn = e.target.closest('[data-act]');
+      if (!row || !btn) return;
+      const id = row.getAttribute('data-id');
+      const m = state.milestones.find(function (x) { return x.id === id; });
+      if (!m) return;
+      const act = btn.getAttribute('data-act');
+      if (act === 'ms-done') {
+        m.achieved = true; m.achievedAt = now().toISOString();
+        markProgressToday(); celebrate(); toast('🏆 達成里程碑！'); save(); renderAll();
+      }
+      if (act === 'ms-undo') { m.achieved = false; m.achievedAt = null; save(); renderMilestones(); }
+      if (act === 'ms-edit') openMilestoneModal(id);
+      if (act === 'ms-del') {
+        if (confirm('刪呢個里程碑？')) {
+          state.milestones = state.milestones.filter(function (x) { return x.id !== id; });
+          save(); renderMilestones(); toast('已刪');
+        }
+      }
+    };
+  }
+
+  let reviewMood = '🙂';
+  function renderReview() {
+    const t = todayStr();
+    $('#reviewDateLabel').textContent = formatDisplayDate(t) + '（香港時間）';
+    const r = (state.reviews && state.reviews[t]) || {};
+    $('#reviewDone').value = r.done || '';
+    $('#reviewStuck').value = r.stuck || '';
+    $('#reviewTomorrow').value = r.tomorrow || '';
+    reviewMood = r.mood || '🙂';
+    $all('#moodPicker .mood-btn').forEach(function (b) {
+      b.classList.toggle('selected', b.getAttribute('data-mood') === reviewMood);
+    });
+    const hist = Object.keys(state.reviews || {}).sort().reverse().slice(0, 7);
+    const box = $('#reviewHistory');
+    if (!hist.length) {
+      box.innerHTML = '<div class="empty"><p>未有歷史回顧</p></div>';
+      return;
+    }
+    box.innerHTML = hist.map(function (d) {
+      const x = state.reviews[d];
+      return '<div class="card"><strong>' + esc(formatDisplayDate(d)) + ' ' + esc(x.mood || '') + '</strong>' +
+        '<p class="hint" style="margin-top:6px">完成：' + esc(x.done || '—') + '</p>' +
+        '<p class="hint">卡住：' + esc(x.stuck || '—') + '</p>' +
+        '<p class="hint">聽日第一件：' + esc(x.tomorrow || '—') + '</p></div>';
+    }).join('');
+  }
+
+  let calCursor = null;
+  let selectedDay = null;
+
+  function renderCalendar() {
+    if (!calCursor) {
+      const t = todayStr();
+      const parts = t.split('-').map(Number);
+      calCursor = { y: parts[0], m: parts[1] };
+    }
+    selectedDay = selectedDay || todayStr();
+    const y = calCursor.y, m = calCursor.m;
+    $('#calMonthLabel').textContent = y + '年' + m + '月';
+    const dows = ['一', '二', '三', '四', '五', '六', '日'];
+    $('#calDows').innerHTML = dows.map(function (d) { return '<div class="cal-dow">' + d + '</div>'; }).join('');
+
+    const first = new Date(Date.UTC(y, m - 1, 1));
+    let startDow = first.getUTCDay();
+    startDow = startDow === 0 ? 6 : startDow - 1;
+    const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const progress = daysWithProgress();
+    const t = todayStr();
+
+    const breakDays = new Set();
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ymd = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      if (ymd > t) continue;
+      if (progress.has(ymd)) continue;
+      const prev = addDaysYmd(ymd, -1);
+      const next = addDaysYmd(ymd, 1);
+      if (progress.has(prev) && (progress.has(next) || ymd < t)) breakDays.add(ymd);
+    }
+
+    let html = '';
+    for (let i = 0; i < startDow; i++) html += '<div class="cal-day empty"></div>';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ymd = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      const classes = ['cal-day'];
+      if (ymd === t) classes.push('today');
+      if (ymd === selectedDay) classes.push('selected');
+      if (progress.has(ymd)) {
+        const prev = addDaysYmd(ymd, -1);
+        classes.push(progress.has(prev) ? 'streak-run' : 'has-done');
+      } else if (breakDays.has(ymd)) {
+        classes.push('break-day');
+      }
+      html += '<button type="button" class="' + classes.join(' ') + '" data-day="' + ymd + '"><span>' + d + '</span>' +
+        (progress.has(ymd) ? '<span class="dot"></span>' : '') + '</button>';
+    }
+    $('#calDays').innerHTML = html;
+    $('#calDays').onclick = function (e) {
+      const b = e.target.closest('[data-day]');
+      if (!b) return;
+      selectedDay = b.getAttribute('data-day');
+      renderCalendar();
+      renderDayDetail(selectedDay);
+    };
+    renderDayDetail(selectedDay);
+  }
+
+  function renderDayDetail(ymd) {
+    $('#dayDetailTitle').textContent = formatDisplayDate(ymd);
+    const completed = state.tasks.filter(function (task) {
+      if (!task.done) return false;
+      if (task.doneAt) return todayStr(new Date(task.doneAt)) === ymd;
+      return task.date === ymd;
+    }).sort(function (a, b) { return String(a.doneAt || '').localeCompare(String(b.doneAt || '')); });
+    const lessons = state.lessons.filter(function (l) {
+      return l.done && l.doneAt && todayStr(new Date(l.doneAt)) === ymd;
+    });
+    const review = state.reviews && state.reviews[ymd];
+    if (!completed.length && !lessons.length && !review) {
+      $('#dayDetailBody').innerHTML = '<p class="hint">呢日未有完成紀錄。</p>';
+      return;
+    }
+    let html = '';
+    completed.forEach(function (task) {
+      html += '<div class="timeline-item"><div class="tl-time">' + (task.doneAt ? esc(timeStr(task.doneAt)) : '—') +
+        '</div><div class="tl-body">' + (task.emoji ? esc(task.emoji) + ' ' : '') + esc(task.title) + '</div></div>';
+    });
+    lessons.forEach(function (l) {
+      html += '<div class="timeline-item"><div class="tl-time">' + esc(timeStr(l.doneAt)) +
+        '</div><div class="tl-body">📚 第 ' + l.n + ' 課 · ' + esc(l.title) + '</div></div>';
+    });
+    if (review) {
+      html += '<div class="timeline-item"><div class="tl-time">回顧</div><div class="tl-body">' +
+        esc(review.mood || '') + ' 完成：' + esc(review.done || '—') + '<br>卡住：' + esc(review.stuck || '—') +
+        '<br>聽日：' + esc(review.tomorrow || '—') + '</div></div>';
+    }
+    $('#dayDetailBody').innerHTML = html;
+  }
+
+  function toggleTask(id) {
+    const task = state.tasks.find(function (x) { return x.id === id; });
+    if (!task) return;
+    task.done = !task.done;
+    task.doneAt = task.done ? now().toISOString() : null;
+    if (task.done) {
+      markProgressToday(); celebrate(); toast('搞掂！' + (task.emoji || '✅'));
+    }
+    checkAutoMilestones(); save(); renderAll();
+  }
+
+  function deleteTask(id) {
+    if (!confirm('刪呢件任務？')) return;
+    state.tasks = state.tasks.filter(function (x) { return x.id !== id; });
+    save(); renderToday(); toast('已刪');
+  }
+
+  function promoteInboxToToday(id) {
+    if (todayOpenTasks().length >= MAX_TODAY) { toast('今日任務已滿 3 件'); return; }
+    const it = state.inbox.find(function (x) { return x.id === id; });
+    if (!it) return;
+    state.tasks.push({
+      id: uid(), title: it.text.replace(/^【示範】/, ''), emoji: '💡',
+      priority: 'mid', date: todayStr(), done: false, doneAt: null,
+      goalId: null, sample: false, createdAt: now().toISOString()
+    });
+    state.inbox = state.inbox.filter(function (x) { return x.id !== id; });
+    save(); renderAll(); toast('已變今日任務');
+  }
+
+  function openModal(html) {
+    $('#modal').innerHTML = html;
+    $('#modalBackdrop').classList.add('open');
+  }
+  function closeModal() {
+    $('#modalBackdrop').classList.remove('open');
+    $('#modal').innerHTML = '';
+  }
+  $('#modalBackdrop').addEventListener('click', function (e) {
+    if (e.target === $('#modalBackdrop')) closeModal();
+  });
+
+  function openTaskModal(id) {
+    const task = id ? state.tasks.find(function (x) { return x.id === id; }) : null;
+    if (!task && todayOpenTasks().length >= MAX_TODAY) { toast('今日最多 3 件任務'); return; }
+    openModal(
+      '<h2>' + (task ? '改任務' : '加今日任務') + '</h2>' +
+      '<div class="field"><label>任務（最多今日 3 件未完成）</label>' +
+      '<input id="fTitle" value="' + esc(task ? task.title : '') + '" placeholder="今日最重要嘅一件…" /></div>' +
+      '<div class="field-row"><div class="field"><label>Emoji</label>' +
+      '<input id="fEmoji" value="' + esc(task ? (task.emoji || '') : '🎯') + '" maxlength="4" /></div>' +
+      '<div class="field"><label>優先</label><select id="fPrio">' +
+      '<option value="high"' + (task && task.priority === 'high' ? ' selected' : '') + '>高</option>' +
+      '<option value="mid"' + (!task || task.priority === 'mid' ? ' selected' : '') + '>中</option>' +
+      '<option value="low"' + (task && task.priority === 'low' ? ' selected' : '') + '>低</option>' +
+      '</select></div></div>' +
+      '<div class="modal-actions"><button class="btn btn-secondary" type="button" id="mCancel">取消</button>' +
+      '<button class="btn btn-primary" type="button" id="mSave">儲存</button></div>'
+    );
+    $('#mCancel').onclick = closeModal;
+    $('#mSave').onclick = function () {
+      const title = $('#fTitle').value.trim();
+      if (!title) { toast('寫低任務內容先'); return; }
+      if (task) {
+        task.title = title; task.emoji = $('#fEmoji').value.trim();
+        task.priority = $('#fPrio').value; task.sample = false;
+      } else {
+        state.tasks.push({
+          id: uid(), title: title, emoji: $('#fEmoji').value.trim() || '🎯',
+          priority: $('#fPrio').value, date: todayStr(), done: false, doneAt: null,
+          goalId: null, sample: false, createdAt: now().toISOString()
+        });
+      }
+      save(); closeModal(); renderAll(); toast('已儲存');
+    };
+    setTimeout(function () { $('#fTitle').focus(); }, 50);
+  }
+
+  function openGoalModal(id) {
+    const g = id ? state.goals.find(function (x) { return x.id === id; }) : null;
+    openModal(
+      '<h2>' + (g ? '改目標' : '加目標') + '</h2>' +
+      '<div class="field"><label>名稱</label><input id="fTitle" value="' + esc(g ? g.title : '') + '" /></div>' +
+      '<div class="field"><label>軌道</label><select id="fTrack">' +
+      '<option value="main"' + (!g || g.track === 'main' ? ' selected' : '') + '>主線</option>' +
+      '<option value="side"' + (g && g.track === 'side' ? ' selected' : '') + '>支線</option></select></div>' +
+      '<div class="field-row"><div class="field"><label>進度</label><input id="fProg" type="number" min="0" value="' + (g ? g.progress : 0) + '" /></div>' +
+      '<div class="field"><label>目標值</label><input id="fTarget" type="number" min="1" value="' + (g ? g.target : 10) + '" /></div></div>' +
+      '<div class="field"><label>單位</label><input id="fUnit" value="' + esc(g ? (g.unit || '') : '%') + '" /></div>' +
+      '<div class="field"><label>備註</label><input id="fNote" value="' + esc(g ? (g.note || '') : '') + '" /></div>' +
+      '<div class="modal-actions"><button class="btn btn-secondary" type="button" id="mCancel">取消</button>' +
+      '<button class="btn btn-primary" type="button" id="mSave">儲存</button></div>'
+    );
+    $('#mCancel').onclick = closeModal;
+    $('#mSave').onclick = function () {
+      const title = $('#fTitle').value.trim();
+      if (!title) { toast('寫目標名稱'); return; }
+      const payload = {
+        title: title, track: $('#fTrack').value,
+        progress: Number($('#fProg').value) || 0,
+        target: Number($('#fTarget').value) || 1,
+        unit: $('#fUnit').value.trim(), note: $('#fNote').value.trim(), sample: false
+      };
+      if (g) { Object.keys(payload).forEach(function (k) { g[k] = payload[k]; }); }
+      else state.goals.push(Object.assign({ id: uid() }, payload));
+      save(); closeModal(); renderGoals(); toast('已儲存目標');
+    };
+  }
+
+  function openMilestoneModal(id) {
+    const m = id ? state.milestones.find(function (x) { return x.id === id; }) : null;
+    openModal(
+      '<h2>' + (m ? '改里程碑' : '加里程碑') + '</h2>' +
+      '<div class="field"><label>名稱</label><input id="fTitle" value="' + esc(m ? m.title : '') + '" placeholder="拆細一個大目標…" /></div>' +
+      '<div class="field-row"><div class="field"><label>Emoji</label><input id="fEmoji" value="' + esc(m ? (m.emoji || '🏁') : '🏁') + '" maxlength="4" /></div>' +
+      '<div class="field"><label>到期日</label><input id="fDue" type="date" value="' + esc(m ? (m.due || '') : addDaysYmd(todayStr(), 14)) + '" /></div></div>' +
+      '<div class="modal-actions"><button class="btn btn-secondary" type="button" id="mCancel">取消</button>' +
+      '<button class="btn btn-primary" type="button" id="mSave">儲存</button></div>'
+    );
+    $('#mCancel').onclick = closeModal;
+    $('#mSave').onclick = function () {
+      const title = $('#fTitle').value.trim();
+      if (!title) { toast('寫里程碑名稱'); return; }
+      if (m) {
+        m.title = title; m.emoji = $('#fEmoji').value.trim() || '🏁';
+        m.due = $('#fDue').value; m.sample = false;
+      } else {
+        state.milestones.push({
+          id: uid(), title: title, emoji: $('#fEmoji').value.trim() || '🏁',
+          due: $('#fDue').value || addDaysYmd(todayStr(), 14),
+          achieved: false, achievedAt: null, sample: false
+        });
+      }
+      save(); closeModal(); renderMilestones(); toast('已儲存');
+    };
+  }
+
+  function showView(name) {
+    $all('.view').forEach(function (v) { v.classList.remove('active'); });
+    const el = $('#view-' + name);
+    if (el) el.classList.add('active');
+    const primary = ['today', 'goals', 'course', 'milestones', 'more'];
+    $all('.nav-btn').forEach(function (b) {
+      const dv = b.getAttribute('data-view');
+      if (['review', 'calendar', 'settings'].indexOf(name) !== -1) {
+        b.classList.toggle('active', dv === 'more');
+      } else {
+        b.classList.toggle('active', dv === name);
+      }
+    });
+    if (name === 'review') renderReview();
+    if (name === 'calendar') renderCalendar();
+  }
+
+  $all('.nav-btn').forEach(function (b) {
+    b.addEventListener('click', function () { showView(b.getAttribute('data-view')); });
+  });
+  $all('[data-open]').forEach(function (b) {
+    b.addEventListener('click', function () { showView(b.getAttribute('data-open')); });
+  });
+  $all('[data-back]').forEach(function (b) {
+    b.addEventListener('click', function () { showView(b.getAttribute('data-back')); });
+  });
+
+  $('#btnAddTask').onclick = function () { openTaskModal(); };
+  $('#btnAddGoal').onclick = function () { openGoalModal(); };
+  $('#btnAddMilestone').onclick = function () { openMilestoneModal(); };
+
+  $('#moodPicker').onclick = function (e) {
+    const b = e.target.closest('.mood-btn');
+    if (!b) return;
+    reviewMood = b.getAttribute('data-mood');
+    $all('#moodPicker .mood-btn').forEach(function (x) { x.classList.toggle('selected', x === b); });
+  };
+
+  $('#btnSaveReview').onclick = function () {
+    const t = todayStr();
+    state.reviews[t] = {
+      done: $('#reviewDone').value.trim(),
+      stuck: $('#reviewStuck').value.trim(),
+      tomorrow: $('#reviewTomorrow').value.trim(),
+      mood: reviewMood,
+      savedAt: now().toISOString()
+    };
+    markProgressToday();
+    checkAutoMilestones();
+    save();
+    renderAll();
+    toast('回顧已儲存 🌙');
+    celebrate();
+  };
+
+  $('#calPrev').onclick = function () {
+    calCursor.m -= 1;
+    if (calCursor.m < 1) { calCursor.m = 12; calCursor.y -= 1; }
+    renderCalendar();
+  };
+  $('#calNext').onclick = function () {
+    calCursor.m += 1;
+    if (calCursor.m > 12) { calCursor.m = 1; calCursor.y += 1; }
+    renderCalendar();
+  };
+
+  function capture(asToday) {
+    const input = $('#quickCapture');
+    const text = input.value.trim();
+    if (!text) { toast('寫啲嘢先'); return; }
+    if (asToday) {
+      if (todayOpenTasks().length >= MAX_TODAY) {
+        toast('今日已滿 3 件——改入收件箱');
+        state.inbox.unshift({ id: uid(), text: text, createdAt: now().toISOString(), sample: false });
+      } else {
+        state.tasks.push({
+          id: uid(), title: text, emoji: '⚡', priority: 'mid',
+          date: todayStr(), done: false, doneAt: null, goalId: null,
+          sample: false, createdAt: now().toISOString()
+        });
+        toast('已加到今日');
+      }
+    } else {
+      state.inbox.unshift({ id: uid(), text: text, createdAt: now().toISOString(), sample: false });
+      toast('已入速記收件箱');
+    }
+    input.value = '';
+    save(); renderAll();
+  }
+  $('#btnCaptureInbox').onclick = function () { capture(false); };
+  $('#btnCaptureToday').onclick = function () { capture(true); };
+  $('#quickCapture').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); capture(e.shiftKey); }
+  });
+
+  $('#btnExport').onclick = function () {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'bobo-pos-export-' + todayStr() + '.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('已匯出');
+  };
+  $('#btnReseed').onclick = function () {
+    if (!confirm('用示範資料覆蓋而家嘅資料？')) return;
+    state = seedData();
+    recomputeActivity();
+    save();
+    renderAll();
+    toast('已載入示範資料');
+  };
+  $('#btnWipe').onclick = function () {
+    if (!confirm('確定清空所有資料？呢個唔可以復原。')) return;
+    localStorage.removeItem(KEY);
+    state = {
+      version: 1, tasks: [], goals: [], lessons: buildLessons(),
+      milestones: [], inbox: [], reviews: {}, activityDays: {}
+    };
+    save(); renderAll(); toast('已清空');
+  };
+
+  load();
+  checkAutoMilestones();
+  renderAll();
+})();
+</script>
+</body>
+</html>
