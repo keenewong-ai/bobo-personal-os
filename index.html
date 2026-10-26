@@ -286,6 +286,36 @@ select {
   .modal { border-radius: 20px; }
   main { padding: 20px; }
 }
+
+.term-card {
+  background: #fff; border: 2px solid var(--gray-100); border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow);
+}
+.term-card.learned { border-color: #B8F06A; background: #F6FFE9; }
+.term-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.term-en { font-weight: 900; font-size: 16px; letter-spacing: -.02em; }
+.term-zh { font-size: 12px; font-weight: 700; color: var(--gray-600); margin-top: 2px; }
+.term-def { font-size: 14px; margin-top: 8px; color: var(--gray-800); line-height: 1.5; }
+.term-tag {
+  display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800;
+  background: var(--blue-soft); color: #0A7EA4; margin-top: 8px;
+}
+.term-card.learned .term-tag { background: var(--green-soft); color: var(--green-dark); }
+.learned-item {
+  display: flex; gap: 10px; align-items: flex-start; padding: 12px;
+  border: 2px solid var(--gray-100); border-radius: var(--radius-sm); background: #fff; margin-bottom: 8px;
+}
+.learned-item .li-body { flex: 1; min-width: 0; }
+.learned-item .li-en { font-weight: 800; font-size: 14px; }
+.learned-item .li-def { font-size: 12px; color: var(--gray-600); margin-top: 2px; }
+.learned-item .li-meta { font-size: 11px; color: var(--gray-400); font-weight: 700; margin-top: 4px; }
+.terms-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+.terms-tab {
+  flex: 1; min-height: 40px; border-radius: 12px; font-weight: 800; font-size: 13px;
+  border: 2px solid var(--gray-100); background: #fff; color: var(--gray-600);
+}
+.terms-tab.active { border-color: var(--green); background: var(--green-soft); color: var(--green-dark); }
+
 </style>
 </head>
 <body>
@@ -364,6 +394,10 @@ select {
 
   <section id="view-more" class="view">
     <div class="more-list">
+      <button class="more-link" type="button" data-open="terms">
+        <div class="ico">🧠</div>
+        <div><strong>每日五條 AI Terms</strong><span>每日 5 個新詞彙 · 累積已學可回睇</span></div>
+      </button>
       <button class="more-link" type="button" data-open="review">
         <div class="ico">🌙</div>
         <div><strong>每日回顧</strong><span>5 分鐘收工：完成、卡住、聽日第一件</span></div>
@@ -377,6 +411,25 @@ select {
         <div><strong>設定</strong><span>匯出 / 重設示範資料</span></div>
       </button>
     </div>
+  </section>
+
+
+  <section id="view-terms" class="view">
+    <button class="btn btn-ghost" type="button" data-back="more">← 返更多</button>
+    <div class="card soft-green" style="margin-top:8px">
+      <h2 style="font-size:17px;font-weight:900;margin-bottom:4px">每日五條 AI Terms</h2>
+      <p class="hint" id="termsDateLabel"></p>
+      <div class="progress-wrap" style="margin-top:10px">
+        <div class="progress-bar"><i id="termsTodayBar" style="width:0%"></i></div>
+        <div class="progress-label"><span id="termsTodayLabel">今日 0 / 5</span><span id="termsTotalLabel">累積 0</span></div>
+      </div>
+    </div>
+    <div class="terms-tabs">
+      <button class="terms-tab active" type="button" data-terms-tab="today">今日五條</button>
+      <button class="terms-tab" type="button" data-terms-tab="learned">已學詞庫</button>
+    </div>
+    <div id="termsTodayPanel"></div>
+    <div id="termsLearnedPanel" hidden></div>
   </section>
 
   <section id="view-review" class="view">
@@ -472,6 +525,179 @@ select {
   const TZ = 'Asia/Hong_Kong';
   const MAX_TODAY = 3;
   const LESSON_COUNT = 67;
+
+
+  const AI_TERMS = [
+    { id: 'llm', en: 'LLM', zh: '大型語言模型', tag: '基礎', def: '用海量文字訓練出嚟嘅模型，可以生成、理解同改寫自然語言。Freelance 多數用 API 接住佢做產品功能。' },
+    { id: 'tokens', en: 'Tokens', zh: '詞元', tag: 'API', def: '模型計費同長度嘅單位，唔一定等於一個英文字。設計 prompt 同估成本時一定要睇 token。' },
+    { id: 'prompt', en: 'Prompt', zh: '提示詞', tag: 'Prompt', def: '你畀模型嘅指示同上下文。寫得好可以直接提升輸出質素，係 AI 整合最平嘅槓桿。' },
+    { id: 'system-prompt', en: 'System Prompt', zh: '系統提示', tag: 'Prompt', def: '設定角色、規則同語氣嘅隱藏指示，通常放喺對話最頂。適合固定產品行為同安全邊界。' },
+    { id: 'few-shot', en: 'Few-shot', zh: '少樣本示範', tag: 'Prompt', def: '喺 prompt 入面畀幾個輸入→輸出例子，引導模型跟格式。比淨講規則更穩陣。' },
+    { id: 'zero-shot', en: 'Zero-shot', zh: '零樣本', tag: 'Prompt', def: '唔畀例子，淨靠指示就完成任務。適合簡單、格式寬鬆嘅場景，複雜格式就考慮 few-shot。' },
+    { id: 'cot', en: 'Chain-of-Thought', zh: '思維鏈', tag: '推理', def: '叫模型一步步諗再答，常可提升複雜推理。產品上要小心暴露內部推理同延遲。' },
+    { id: 'temperature', en: 'Temperature', zh: '溫度', tag: 'API', def: '控制輸出隨機程度：低就穩同保守，高就有創意但更易跑偏。客服同資料抽取通常用低溫。' },
+    { id: 'top-p', en: 'Top-p', zh: '核採樣', tag: 'API', def: '只喺累積概率達 p 嘅詞入面抽樣。同 temperature 一齊調，但產品上多數調一個就夠。' },
+    { id: 'streaming', en: 'Streaming', zh: '串流輸出', tag: 'API', def: '模型邊生成邊把字送返前端，感覺更快。聊天 UI 同長文生成幾乎標配。' },
+    { id: 'function-calling', en: 'Function Calling', zh: '函式呼叫', tag: '工具', def: '模型輸出結構化「要 call 邊個工具＋參數」，由你嘅後端真正執行。做 agent 同整合系統嘅核心。' },
+    { id: 'tool-use', en: 'Tool Use', zh: '工具使用', tag: '工具', def: '廣義上模型可以揀用 search、DB、計算機等工具。設計好 schema 同權限先安全。' },
+    { id: 'json-mode', en: 'JSON Mode', zh: 'JSON 模式', tag: 'API', def: '要求模型輸出合法 JSON，方便程式解析。報表、表單填寫、workflow 輸入好用。' },
+    { id: 'structured-outputs', en: 'Structured Outputs', zh: '結構化輸出', tag: 'API', def: '用 schema 約束輸出欄位同型別，減少 parse 失敗。生產系統比「請輸出 JSON」更可靠。' },
+    { id: 'rag', en: 'RAG', zh: '檢索增強生成', tag: '架構', def: '先從知識庫搜相關文件，再塞入 prompt 畀模型答。適合私有文件、FAQ、內部知識助手。' },
+    { id: 'embeddings', en: 'Embeddings', zh: '向量嵌入', tag: '檢索', def: '把文字變成數字向量，用距離衡量語意相似。RAG、搜尋、去重都靠佢。' },
+    { id: 'vector-db', en: 'Vector Database', zh: '向量資料庫', tag: '檢索', def: '專門存同查 embeddings 嘅庫（如 Pinecone、pgvector）。規模大時比純記憶體搜更穩。' },
+    { id: 'chunking', en: 'Chunking', zh: '切片', tag: '檢索', def: '把長文件切成可檢索小段。切太碎會失上下文，太長會嘈雜——要按文檔類型調。' },
+    { id: 'hybrid-search', en: 'Hybrid Search', zh: '混合搜尋', tag: '檢索', def: '關鍵字搜尋 + 向量語意搜尋一齊用。專有名詞同精確 ID 往往關鍵字更準。' },
+    { id: 'reranking', en: 'Reranking', zh: '重排序', tag: '檢索', def: '先粗搜一堆候選，再用更準（通常更貴）模型重新排先。提升 RAG 命中率嘅常見招。' },
+    { id: 'context-window', en: 'Context Window', zh: '上下文視窗', tag: '基礎', def: '模型一次可以「睇到」嘅最大 token 數。超咗就要摘要、RAG 或分段處理。' },
+    { id: 'context-stuffing', en: 'Context Stuffing', zh: '硬塞上下文', tag: '反模式', def: '把所有文件一股腦塞入 prompt。短通，長就貴、慢、仲可能更嘈。優先用檢索。' },
+    { id: 'hallucination', en: 'Hallucination', zh: '幻覺', tag: '風險', def: '模型自信噉講錯事實。產品上要用 grounding、引用、驗證步驟同低溫輸出去減低。' },
+    { id: 'grounding', en: 'Grounding', zh: '落地／有據', tag: '品質', def: '要求答案必須建基於提供嘅資料來源。常見做法：引用段落、無資料就話唔知。' },
+    { id: 'eval', en: 'Evaluation (Eval)', zh: '評測', tag: '品質', def: '用固定測試集量度 prompt／模型表現。Freelance 交付前有 eval，先證明唔係「感覺好好」。' },
+    { id: 'golden-set', en: 'Golden Set', zh: '黃金測試集', tag: '品質', def: '人手標好嘅正確答案樣本。改 prompt 之後跑一遍，睇有冇退步。' },
+    { id: 'llm-as-judge', en: 'LLM-as-Judge', zh: '模型當裁判', tag: '品質', def: '用另一個 LLM 按準則打分。快但會有偏誤，重要場景要抽樣人工覆核。' },
+    { id: 'prompt-injection', en: 'Prompt Injection', zh: '提示注入', tag: '安全', def: '惡意內容嘗試覆寫你嘅系統指示（例如「忽略之前規則」）。處理用戶／網頁內容時要防。' },
+    { id: 'jailbreak', en: 'Jailbreak', zh: '越獄', tag: '安全', def: '用技巧令模型繞過安全政策。產品要有輸出過濾同政策層，唔好淨靠模型自律。' },
+    { id: 'guardrails', en: 'Guardrails', zh: '護欄', tag: '安全', def: '輸入／輸出檢查、拒答規則、PII 過濾等。生產級 AI 功能幾乎一定要加。' },
+    { id: 'pii', en: 'PII', zh: '個人識別資訊', tag: '安全', def: '姓名、電話、身分證等敏感資料。送去第三方 API 前要考慮遮罩、同意同合規。' },
+    { id: 'rate-limit', en: 'Rate Limit', zh: '速率限制', tag: 'API', def: '供應商限制每分鐘請求／token。產品要有重試、排隊同降級策略，否則高峰會爆。' },
+    { id: 'retry-backoff', en: 'Exponential Backoff', zh: '指數退避', tag: '工程', def: '失敗後等愈嚟愈耐先再試，避免打爆 API。配合 jitter 可以減少「一齊重試」。' },
+    { id: 'idempotency', en: 'Idempotency', zh: '冪等', tag: '工程', def: '同一請求重送多次結果一樣。付款、建立工單、寫入 DB 嘅 AI workflow 好重要。' },
+    { id: 'webhook', en: 'Webhook', zh: '回呼通知', tag: '整合', def: '外部系統用 HTTP POST 通知你事件發生。常見於异步生成完成、支付、CRM 更新。' },
+    { id: 'agent', en: 'AI Agent', zh: '智能體', tag: '架構', def: '可以規劃、用工具、多步完成目標嘅系統，唔止單次問答。要嚴格控權限同成本。' },
+    { id: 'multi-agent', en: 'Multi-agent', zh: '多代理', tag: '架構', def: '幾個角色分工（研究、寫作、審核）協作。複雜任務有用，但協調同除錯成本更高。' },
+    { id: 'planner-executor', en: 'Planner–Executor', zh: '規劃—執行', tag: '架構', def: '一個模型負責拆步驟，另一個（或同一套）負責執行工具。方便審計每一步。' },
+    { id: 'memory', en: 'Memory', zh: '記憶', tag: '架構', def: '跨 session 記住用戶偏好或事實。短記憶用對話歷史，長記憶常用向量庫或資料表。' },
+    { id: 'session', en: 'Session', zh: '會話', tag: '產品', def: '一次連續對話嘅狀態邊界。要決定保留幾耐、邊啲可寫入長期記憶。' },
+    { id: 'fine-tuning', en: 'Fine-tuning', zh: '微調', tag: '訓練', def: '用自家數據再訓練模型以改變風格或任務表現。成本高，多數情況先試 prompt／RAG。' },
+    { id: 'lora', en: 'LoRA', zh: '低秩適配', tag: '訓練', def: '一種輕量微調手法，只更新少量參數。自架開源模型時常見，雲端 API 較少直接接觸。' },
+    { id: 'distillation', en: 'Distillation', zh: '蒸餾', tag: '訓練', def: '用大模型教細模型，換取更便宜／更快嘅推斷。適合高流量固定任務。' },
+    { id: 'inference', en: 'Inference', zh: '推斷／推理服務', tag: '基礎', def: '用已訓練模型產生輸出嘅過程。API 計費、延遲、GPU 都係 inference 成本。' },
+    { id: 'latency', en: 'Latency', zh: '延遲', tag: '工程', def: '用戶等到第一個／完整答案嘅時間。串流、快取、細模型路由可以改善體感。' },
+    { id: 'ttft', en: 'TTFT', zh: '首 token 時間', tag: '工程', def: 'Time To First Token——串流時用戶見到第一個字嘅時間。聊天體驗關鍵指標。' },
+    { id: 'caching', en: 'Prompt Caching', zh: '提示快取', tag: '成本', def: '重用長而穩定嘅前綴（系統提示、文件）以減價同加速。長文件助手好有用。' },
+    { id: 'model-routing', en: 'Model Routing', zh: '模型路由', tag: '架構', def: '簡單問題用平／快模型，難題先升級貴模型。控制成本同時保質素。' },
+    { id: 'fallback', en: 'Fallback', zh: '降級備援', tag: '工程', def: '主模型失敗時改用備援模型或規則系統。生產服務唔可以「全站掛」。' },
+    { id: 'observability', en: 'Observability', zh: '可觀測性', tag: '工程', def: '記錄 prompt、延遲、錯誤、成本同用戶回饋。冇數據就唔知點優化 AI 功能。' },
+    { id: 'tracing', en: 'Tracing', zh: '追蹤', tag: '工程', def: '把一次請求嘅每個步驟（檢索、工具、模型）串成軌跡。除錯 agent 必備。' },
+    { id: 'cost-per-query', en: 'Cost per Query', zh: '每次查詢成本', tag: '商業', def: '把 token、工具、向量搜尋費用攤到每次用戶請求。報價同毛利要計清楚。' },
+    { id: 'anthropic-messages', en: 'Messages API', zh: '訊息式 API', tag: 'Claude', def: 'Anthropic 以角色訊息陣列對話嘅主流介面。整合 Claude 時多數由呢度入手。' },
+    { id: 'claude-tools', en: 'Claude Tools', zh: 'Claude 工具', tag: 'Claude', def: 'Claude 嘅 tool use／computer use 能力，可操作外部系統。做自動化助手時好關鍵。' },
+    { id: 'artifacts', en: 'Artifacts', zh: '產物面板', tag: '產品', def: '把長輸出（程式、文件）放到可編輯面板，而唔塞滿聊天。產品 UX 可借鑑。' },
+    { id: 'mcp', en: 'MCP', zh: '模型上下文協議', tag: '整合', def: 'Model Context Protocol——標準化工具／資料來源點樣接畀 AI 應用。減少每家自訂整合。' },
+    { id: 'langchain', en: 'LangChain', zh: '鏈式框架', tag: '框架', def: '常見 LLM 應用框架，包 prompt、檢索、agent 抽象。原型快，但生產要理解底層。' },
+    { id: 'llamaindex', en: 'LlamaIndex', zh: '索引框架', tag: '框架', def: '偏重文件索引同 RAG 管線嘅框架。知識庫類產品好常見。' },
+    { id: 'semantic-cache', en: 'Semantic Cache', zh: '語意快取', tag: '成本', def: '相似問題直接回先前答案，唔再打模型。FAQ 型產品可以大幅慳錢。' },
+    { id: 'embedding-model', en: 'Embedding Model', zh: '嵌入模型', tag: '檢索', def: '專門把文字轉向量嘅模型，通常比生成模型平同快。選錯維度／語言會影響檢索。' },
+    { id: 'multimodal', en: 'Multimodal', zh: '多模態', tag: '基礎', def: '可同時處理文字、圖像甚至音訊嘅模型。文件 OCR、截圖問答屬此類。' },
+    { id: 'vision-llm', en: 'Vision LLM', zh: '視覺語言模型', tag: '多模態', def: '可以「睇圖」再回答嘅 LLM。適合表單截圖、UI 除錯、發票理解。' },
+    { id: 'ocr', en: 'OCR', zh: '光學字元辨識', tag: '多模態', def: '從圖像提取文字。可以係專用引擎，亦可以由 vision model 做；要評測準確率。' },
+    { id: 'asr', en: 'ASR', zh: '語音轉文字', tag: '多模態', def: 'Automatic Speech Recognition。客服通話分析、語音筆記常同 LLM 串埋。' },
+    { id: 'tts', en: 'TTS', zh: '文字轉語音', tag: '多模態', def: 'Text-to-Speech。語音助手、無障礙同內容創作會用到。' },
+    { id: 'rag-eval', en: 'RAG Evaluation', zh: 'RAG 評測', tag: '品質', def: '分開量度檢索命中同答案正確。唔好淨睇最終答案——先知係搜錯定寫錯。' },
+    { id: 'citation', en: 'Citation', zh: '引用', tag: '產品', def: '答案標明來源段落。提升信任，亦方便用戶核對，減少幻覺傷害。' },
+    { id: 'human-in-loop', en: 'Human-in-the-loop', zh: '人工把關', tag: '產品', def: '高風險步驟要人確認先執行（發信、改價、刪資料）。Agent 上線初期幾乎必要。' },
+    { id: 'approval-workflow', en: 'Approval Workflow', zh: '審批流程', tag: '產品', def: 'AI 起草 → 人批核 → 系統執行。Freelance 做企業內部自動化好受落。' },
+    { id: 'a-b-prompt', en: 'Prompt A/B Test', zh: '提示詞 A/B', tag: '品質', def: '同時跑兩套 prompt，用指標同用戶回饋比較。持續優化必經之路。' },
+    { id: 'regression', en: 'Prompt Regression', zh: '提示詞回歸', tag: '品質', def: '改完一句 prompt 導致舊 case 變差。所以要有 golden set 同 CI 式檢查。' },
+    { id: 'schema-validation', en: 'Schema Validation', zh: '結構驗證', tag: '工程', def: '用 JSON Schema／Zod 驗證模型輸出。唔合格就重試或降級，避免髒數據入庫。' },
+    { id: 'deterministic', en: 'Deterministic Output', zh: '確定性輸出', tag: '工程', def: '同一輸入盡量得同一結果。資料管線、測試同合規場景會調低隨機性。' },
+    { id: 'non-deterministic', en: 'Non-determinism', zh: '非確定性', tag: '工程', def: '同 prompt 都可能有唔同輸出。測試要用近似比對、多種子，唔好 expect 字字相同。' },
+    { id: 'batch-inference', en: 'Batch Inference', zh: '批次推斷', tag: '成本', def: '非即時大量任務用批次 API，通常更平。適合夜間摘要、分類舊工單。' },
+    { id: 'online-inference', en: 'Online Inference', zh: '線上推斷', tag: '工程', def: '用戶等緊嘅即時請求。要優化延遲、超時同使用者可見錯誤訊息。' },
+    { id: 'embedding-drift', en: 'Embedding Drift', zh: '向量漂移', tag: '檢索', def: '換嵌入模型後舊向量唔可比。要重建索引，唔可以混用兩代向量。' },
+    { id: 'chunk-overlap', en: 'Chunk Overlap', zh: '切片重疊', tag: '檢索', def: '相鄰 chunk 保留重疊字，減少句子被切斷。常見 10–20% overlap。' },
+    { id: 'metadata-filter', en: 'Metadata Filter', zh: '中繼資料過濾', tag: '檢索', def: '按客戶、日期、文件類型先過濾再向量搜。多租戶 SaaS 幾乎必用。' },
+    { id: 'tenancy', en: 'Multi-tenancy', zh: '多租戶', tag: '架構', def: '多個客戶共用系統但資料隔離。AI 功能要防止跨租戶檢索洩漏。' },
+    { id: 'rbac', en: 'RBAC', zh: '角色權限', tag: '安全', def: 'Role-Based Access Control。Agent 用工具時要繼承用戶權限，唔好用上帝帳號。' },
+    { id: 'least-privilege', en: 'Least Privilege', zh: '最小權限', tag: '安全', def: '只畀完成任務所需權限。工具 API key、檔案範圍都要收窄。' },
+    { id: 'red-teaming', en: 'Red Teaming', zh: '紅隊測試', tag: '安全', def: '主動用攻擊式問題試爆產品。上線前搵注入、洩漏、有害輸出。' },
+    { id: 'content-moderation', en: 'Content Moderation', zh: '內容審核', tag: '安全', def: '攔截有害、違法或違規內容。可以模型審核 + 規則引擎雙層。' },
+    { id: 'sli-slo', en: 'SLI / SLO', zh: '服務指標／目標', tag: '工程', def: '例如成功率、P95 延遲。AI 功能都要訂，唔係「有時好慢都算啦」。' },
+    { id: 'canary', en: 'Canary Release', zh: '金絲雀發布', tag: '工程', def: '新 prompt／模型先放少量流量。出問題可即刻回滾，降低全量風險。' },
+    { id: 'feature-flag', en: 'Feature Flag', zh: '功能開關', tag: '工程', def: '用開關控制 AI 功能開關或模型版本。方便灰度同緊急關閉。' },
+    { id: 'tokenization', en: 'Tokenization', zh: '分詞／編碼', tag: '基礎', def: '把文字切成 tokens 嘅過程。中英混合時 token 數往往比你想像多。' },
+    { id: 'bpe', en: 'BPE', zh: '位元組對編碼', tag: '基礎', def: '常見 tokenization 演算法。明白佢有助解釋點解奇怪符號會「貴」。' },
+    { id: 'logit-bias', en: 'Logit Bias', zh: '對數幾率偏置', tag: 'API', def: '人手調高／調低某啲 token 出現機會。可用於禁詞或偏好格式，但要小心副作用。' },
+    { id: 'stop-sequences', en: 'Stop Sequences', zh: '停止序列', tag: 'API', def: '遇到指定字串就停生成。控制格式邊界、防止模型繼續胡謅。' },
+    { id: 'max-tokens', en: 'Max Tokens', zh: '最大輸出長度', tag: 'API', def: '限制一次回答可以生幾長。保護成本同超時，亦要夠長先完成任務。' },
+    { id: 'system-of-record', en: 'System of Record', zh: '權威資料源', tag: '架構', def: '真相存放處（CRM、DB）。AI 應讀寫呢度，而唔係把聊天記錄當唯一真相。' },
+    { id: 'etl-for-ai', en: 'AI Data Pipeline', zh: 'AI 資料管線', tag: '架構', def: '清洗、切片、嵌入、更新索引嘅自動化流程。知識庫產品嘅後台骨架。' },
+    { id: 'cold-start', en: 'Cold Start', zh: '冷啟動', tag: '產品', def: '新用戶／新庫未有數據時體驗差。可用預設模板、引導式收集、熱門 FAQ 頂住。' },
+    { id: 'personalization', en: 'Personalization', zh: '個人化', tag: '產品', def: '按用戶歷史調答案風格或建議。要透明同畀關閉，避免「嚇親」同隱私問題。' },
+    { id: 'copilot-pattern', en: 'Copilot Pattern', zh: '副駕駛模式', tag: '產品', def: 'AI 建議、人做最終決定。IDE、客服草稿、電郵回覆都係呢個模式。' },
+    { id: 'autonomous-pattern', en: 'Autonomous Pattern', zh: '自走模式', tag: '產品', def: 'AI 直接執行動作。只適合低風險、可回滾、有監察嘅流程。' },
+    { id: 'eval-harness', en: 'Eval Harness', zh: '評測架生', tag: '品質', def: '自動化跑測試集、打分、出報告嘅工具鏈。團隊協作改 prompt 時好有用。' },
+    { id: 'synthetic-data', en: 'Synthetic Data', zh: '合成數據', tag: '品質', def: '用模型生成訓練／測試樣本。可加速，但要防偏差同同質化，重要域仍要真人樣本。' },
+    { id: 'domain-adaptation', en: 'Domain Adaptation', zh: '領域適配', tag: '訓練', def: '令模型更懂你行業用語同流程。可用術語表、RAG、few-shot 或微調達成。' },
+    { id: 'glossary-prompt', en: 'Glossary in Prompt', zh: '術語表提示', tag: 'Prompt', def: '把公司專有名詞解釋塞入系統提示。平靚正嘅領域適配手法。' },
+    { id: 'output-contract', en: 'Output Contract', zh: '輸出契約', tag: '工程', def: '前後端約定模型必須遵守嘅欄位／狀態機。當 API contract 咁對待 AI 輸出。' },
+    { id: 'repair-loop', en: 'Repair Loop', zh: '修復迴圈', tag: '工程', def: '驗證失敗就將錯誤訊息交返模型改到合格。有上限次數，避免無限燒錢。' },
+    { id: 'tool-schema', en: 'Tool Schema', zh: '工具結構描述', tag: '工具', def: '用 JSON Schema 描述工具名稱、參數、必填項。寫得清楚，模型先 call 得準。' },
+    { id: 'parallel-tools', en: 'Parallel Tool Calls', zh: '並行工具呼叫', tag: '工具', def: '一次要求同時 call 多個獨立工具以減延遲。要注意副作用同冪等。' },
+    { id: 'computer-use', en: 'Computer Use', zh: '電腦操控', tag: 'Agent', def: '模型睇畫面並操作滑鼠鍵盤完成任務。能力強但安全同穩定風險更高。' },
+    { id: 'sandbox', en: 'Sandbox', zh: '沙盒', tag: '安全', def: '隔離執行代碼／工具嘅環境。畀模型跑 code 時幾乎必備。' },
+    { id: 'prompt-library', en: 'Prompt Library', zh: '提示詞庫', tag: '團隊', def: '版本化管理常用 prompt。Freelance 交付時方便客戶接手同迭代。' },
+    { id: 'versioning', en: 'Prompt Versioning', zh: '提示版本', tag: '工程', def: '每個上線 prompt 有版本號同變更說明。出問題可以 rollback 到上一個。' }
+  ];
+
+  function hashStr(s) {
+    var h = 2166136261;
+    for (var i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+  function mulberry32(a) {
+    return function () {
+      var t = a += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function seededShuffle(arr, seed) {
+    var a = arr.slice();
+    var rand = mulberry32(seed >>> 0);
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(rand() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+  function ensureAiTermsState() {
+    if (!state.aiTerms || typeof state.aiTerms !== 'object') state.aiTerms = { learned: {}, daily: {} };
+    if (!state.aiTerms.learned || typeof state.aiTerms.learned !== 'object') state.aiTerms.learned = {};
+    if (!state.aiTerms.daily || typeof state.aiTerms.daily !== 'object') state.aiTerms.daily = {};
+  }
+  function pickNewDailyTermIds(ymd) {
+    var learned = state.aiTerms.learned;
+    var unused = AI_TERMS.filter(function (t) { return !learned[t.id]; });
+    var used = AI_TERMS.filter(function (t) { return !!learned[t.id]; });
+    var seed = hashStr('bobo-ai-terms|' + ymd);
+    var pick = seededShuffle(unused, seed);
+    var ids = pick.slice(0, 5).map(function (t) { return t.id; });
+    if (ids.length < 5) {
+      var fill = seededShuffle(used.length ? used : AI_TERMS, seed ^ 0x9e3779b9);
+      for (var i = 0; i < fill.length && ids.length < 5; i++) {
+        if (ids.indexOf(fill[i].id) === -1) ids.push(fill[i].id);
+      }
+    }
+    return ids;
+  }
+  function getDailyTerms(ymd) {
+    ensureAiTermsState();
+    var cached = state.aiTerms.daily[ymd];
+    if (!cached || !cached.length) {
+      cached = pickNewDailyTermIds(ymd);
+      state.aiTerms.daily[ymd] = cached;
+      try { save(); } catch (e) {}
+    }
+    return cached.map(function (id) {
+      return AI_TERMS.find(function (t) { return t.id === id; });
+    }).filter(Boolean);
+  }
+
 
   function now() { return new Date(); }
   function hkParts(d) {
@@ -569,7 +795,11 @@ select {
       reviews: {
         [y1]: { done: '讀咗兩課 Prompt、改咗履歷一段', stuck: '報價範圍仲未夠清晰', tomorrow: '寫服務一頁紙大綱', mood: '🙂', savedAt: y1 + 'T22:00:00+08:00' }
       },
-      activityDays: {}
+      activityDays: {},
+      aiTerms: { learned: {
+        'llm': { learnedAt: y2 + 'T20:00:00+08:00', day: y2, sample: true },
+        'tokens': { learnedAt: y1 + 'T20:30:00+08:00', day: y1, sample: true }
+      }, daily: {} }
     };
   }
 
@@ -593,6 +823,7 @@ select {
       }
       if (!state.reviews) state.reviews = {};
       if (!state.inbox) state.inbox = [];
+      ensureAiTermsState();
       rollIncompleteTasks();
       recomputeActivity();
       save();
@@ -626,6 +857,12 @@ select {
       if (l.done && l.doneAt) set.add(todayStr(new Date(l.doneAt)));
     });
     Object.keys(state.reviews || {}).forEach(d => set.add(d));
+    ensureAiTermsState();
+    Object.keys(state.aiTerms.learned).forEach(function (id) {
+      var rec = state.aiTerms.learned[id];
+      if (rec && rec.day) set.add(rec.day);
+      else if (rec && rec.learnedAt) set.add(todayStr(new Date(rec.learnedAt)));
+    });
     return set;
   }
 
@@ -725,6 +962,7 @@ select {
     renderInbox();
     renderReview();
     renderCalendar();
+    renderTerms();
   }
 
   function renderToday() {
@@ -932,6 +1170,105 @@ select {
   }
 
   let reviewMood = '🙂';
+
+  let termsTab = 'today';
+
+  function renderTerms() {
+    ensureAiTermsState();
+    const t = todayStr();
+    const daily = getDailyTerms(t);
+    const learnedMap = state.aiTerms.learned;
+    const todayLearned = daily.filter(function (term) { return learnedMap[term.id]; }).length;
+    const totalLearned = Object.keys(learnedMap).length;
+    const dateEl = $('#termsDateLabel');
+    if (dateEl) dateEl.textContent = formatDisplayDate(t) + ' · 按日固定五條，未學過優先';
+    const bar = $('#termsTodayBar');
+    if (bar) bar.style.width = Math.round((todayLearned / 5) * 100) + '%';
+    const tl = $('#termsTodayLabel');
+    if (tl) tl.textContent = '今日 ' + todayLearned + ' / 5';
+    const tot = $('#termsTotalLabel');
+    if (tot) tot.textContent = '累積 ' + totalLearned + ' 個';
+
+    $all('.terms-tab').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-terms-tab') === termsTab);
+    });
+    const todayPanel = $('#termsTodayPanel');
+    const learnedPanel = $('#termsLearnedPanel');
+    if (!todayPanel || !learnedPanel) return;
+    todayPanel.hidden = termsTab !== 'today';
+    learnedPanel.hidden = termsTab !== 'learned';
+
+    if (termsTab === 'today') {
+      todayPanel.innerHTML = daily.map(function (term) {
+        const learned = !!learnedMap[term.id];
+        return '<div class="term-card ' + (learned ? 'learned' : '') + '" data-term-id="' + esc(term.id) + '">' +
+          '<div class="term-head"><div><div class="term-en">' + esc(term.en) + '</div>' +
+          '<div class="term-zh">' + esc(term.zh) + '</div></div>' +
+          (learned
+            ? '<button class="btn btn-sm btn-secondary" type="button" data-act="unlearn">取消</button>'
+            : '<button class="btn btn-sm btn-primary" type="button" data-act="learn">今日已學</button>') +
+          '</div>' +
+          '<div class="term-def">' + esc(term.def) + '</div>' +
+          '<span class="term-tag">' + esc(term.tag) + (learned ? ' · 已學' : '') + '</span></div>';
+      }).join('');
+      todayPanel.onclick = function (e) {
+        const card = e.target.closest('.term-card');
+        const btn = e.target.closest('[data-act]');
+        if (!card || !btn) return;
+        const id = card.getAttribute('data-term-id');
+        const act = btn.getAttribute('data-act');
+        ensureAiTermsState();
+        if (act === 'learn') {
+          state.aiTerms.learned[id] = { learnedAt: now().toISOString(), day: todayStr(), sample: false };
+          markProgressToday();
+          checkAutoMilestones();
+          save(); renderAll();
+          toast('記低咗 ✓');
+          if (Object.keys(state.aiTerms.learned).length % 5 === 0) celebrate();
+        } else if (act === 'unlearn') {
+          delete state.aiTerms.learned[id];
+          recomputeActivity();
+          save(); renderAll();
+          toast('已取消');
+        }
+      };
+    } else {
+      const ids = Object.keys(learnedMap);
+      if (!ids.length) {
+        learnedPanel.innerHTML = '<div class="empty"><div class="emoji">🧠</div><h3>仲未有已學詞彙</h3><p>去「今日五條」撳「今日已學」就會累積喺度。</p></div>';
+      } else {
+        const byDate = ids.map(function (id) {
+          const term = AI_TERMS.find(function (x) { return x.id === id; });
+          const rec = learnedMap[id];
+          return { term: term, rec: rec, id: id };
+        }).filter(function (x) { return x.term; })
+          .sort(function (a, b) {
+            return String((b.rec && b.rec.learnedAt) || '').localeCompare(String((a.rec && a.rec.learnedAt) || ''));
+          });
+        learnedPanel.innerHTML = '<p class="hint" style="margin-bottom:10px">合共 ' + byDate.length + ' 個 · 最新喺上</p>' +
+          byDate.map(function (row) {
+            const day = (row.rec && row.rec.day) || (row.rec && row.rec.learnedAt ? todayStr(new Date(row.rec.learnedAt)) : '');
+            return '<div class="learned-item" data-term-id="' + esc(row.id) + '">' +
+              '<div class="li-body"><div class="li-en">' + esc(row.term.en) + ' · ' + esc(row.term.zh) + '</div>' +
+              '<div class="li-def">' + esc(row.term.def) + '</div>' +
+              '<div class="li-meta">' + esc(row.term.tag) + (day ? ' · ' + formatDisplayDate(day) : '') +
+              (row.rec && row.rec.sample ? ' · 示範' : '') + '</div></div>' +
+              '<button class="icon-btn" type="button" data-act="unlearn" title="移除">🗑️</button></div>';
+          }).join('');
+        learnedPanel.onclick = function (e) {
+          const btn = e.target.closest('[data-act="unlearn"]');
+          const row = e.target.closest('.learned-item');
+          if (!btn || !row) return;
+          const id = row.getAttribute('data-term-id');
+          delete state.aiTerms.learned[id];
+          recomputeActivity();
+          save(); renderAll();
+          toast('已移除');
+        };
+      }
+    }
+  }
+
   function renderReview() {
     const t = todayStr();
     $('#reviewDateLabel').textContent = formatDisplayDate(t) + '（香港時間）';
@@ -1028,7 +1365,16 @@ select {
       return l.done && l.doneAt && todayStr(new Date(l.doneAt)) === ymd;
     });
     const review = state.reviews && state.reviews[ymd];
-    if (!completed.length && !lessons.length && !review) {
+    ensureAiTermsState();
+    const dayTerms = Object.keys(state.aiTerms.learned).filter(function (id) {
+      var rec = state.aiTerms.learned[id];
+      if (!rec) return false;
+      if (rec.day) return rec.day === ymd;
+      return rec.learnedAt && todayStr(new Date(rec.learnedAt)) === ymd;
+    }).map(function (id) {
+      return { id: id, term: AI_TERMS.find(function (x) { return x.id === id; }), rec: state.aiTerms.learned[id] };
+    }).filter(function (x) { return x.term; });
+    if (!completed.length && !lessons.length && !review && !dayTerms.length) {
       $('#dayDetailBody').innerHTML = '<p class="hint">呢日未有完成紀錄。</p>';
       return;
     }
@@ -1040,6 +1386,11 @@ select {
     lessons.forEach(function (l) {
       html += '<div class="timeline-item"><div class="tl-time">' + esc(timeStr(l.doneAt)) +
         '</div><div class="tl-body">📚 第 ' + l.n + ' 課 · ' + esc(l.title) + '</div></div>';
+    });
+    dayTerms.forEach(function (row) {
+      var tm = row.rec && row.rec.learnedAt ? esc(timeStr(row.rec.learnedAt)) : '詞彙';
+      html += '<div class="timeline-item"><div class="tl-time">' + tm +
+        '</div><div class="tl-body">🧠 已學 · ' + esc(row.term.en) + '（' + esc(row.term.zh) + '）</div></div>';
     });
     if (review) {
       html += '<div class="timeline-item"><div class="tl-time">回顧</div><div class="tl-body">' +
@@ -1193,7 +1544,7 @@ select {
     const primary = ['today', 'goals', 'course', 'milestones', 'more'];
     $all('.nav-btn').forEach(function (b) {
       const dv = b.getAttribute('data-view');
-      if (['review', 'calendar', 'settings'].indexOf(name) !== -1) {
+      if (['review', 'calendar', 'settings', 'terms'].indexOf(name) !== -1) {
         b.classList.toggle('active', dv === 'more');
       } else {
         b.classList.toggle('active', dv === name);
@@ -1201,6 +1552,7 @@ select {
     });
     if (name === 'review') renderReview();
     if (name === 'calendar') renderCalendar();
+    if (name === 'terms') renderTerms();
   }
 
   $all('.nav-btn').forEach(function (b) {
@@ -1211,6 +1563,15 @@ select {
   });
   $all('[data-back]').forEach(function (b) {
     b.addEventListener('click', function () { showView(b.getAttribute('data-back')); });
+  });
+
+
+  document.addEventListener('click', function (e) {
+    const tab = e.target.closest('[data-terms-tab]');
+    if (!tab) return;
+    if (!$('#view-terms') || !$('#view-terms').classList.contains('active')) return;
+    termsTab = tab.getAttribute('data-terms-tab');
+    renderTerms();
   });
 
   $('#btnAddTask').onclick = function () { openTaskModal(); };
@@ -1303,7 +1664,8 @@ select {
     localStorage.removeItem(KEY);
     state = {
       version: 1, tasks: [], goals: [], lessons: buildLessons(),
-      milestones: [], inbox: [], reviews: {}, activityDays: {}
+      milestones: [], inbox: [], reviews: {}, activityDays: {},
+      aiTerms: { learned: {}, daily: {} }
     };
     save(); renderAll(); toast('已清空');
   };
