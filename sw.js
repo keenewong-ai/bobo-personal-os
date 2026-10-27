@@ -1,5 +1,5 @@
 /* BoBo Personal OS — minimal offline shell SW */
-const CACHE = 'bobo-pos-shell-v18';
+const CACHE = 'bobo-pos-shell-v19';
 const PRECACHE = [
   './',
   './index.html',

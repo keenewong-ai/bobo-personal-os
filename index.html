@@ -979,10 +979,23 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       <div style="margin-bottom:10px">
         <span class="sync-status offline" id="syncStatusBadge"><span class="sync-dot"></span><span id="syncStatusText">未連線</span></span>
       </div>
-      <p class="hint">User ID（匿名登入，本機 session 會記住）</p>
+      <p class="hint" style="margin-bottom:6px">本機同步碼 · 喺另一部裝置輸入呢個碼就共用進度</p>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <code id="syncCodeDisplay" style="flex:1;word-break:break-all">—</code>
+        <button class="btn btn-secondary btn-sm btn-ico-only" id="btnCopySyncCode" type="button" title="複製同步碼"><i class="fi fi-rr-copy" aria-hidden="true"></i></button>
+      </div>
+      <p class="hint" id="pairStatusHint" style="margin-bottom:10px">未配對 · 用緊本機帳號</p>
+      <label class="hint" for="pairCodeInput" style="display:block;margin-bottom:4px">輸入另一部裝置嘅同步碼</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input id="pairCodeInput" type="text" autocomplete="off" spellcheck="false" placeholder="例如 e98c895c9af858b7" style="flex:1;min-width:0;padding:10px 12px;border-radius:12px;border:2px solid var(--border);background:var(--bg);color:var(--text);font:inherit;font-size:14px;letter-spacing:.02em" />
+        <button class="btn btn-primary btn-sm" id="btnPairCode" type="button">配對</button>
+      </div>
+      <button class="btn btn-ghost btn-block btn-sm" id="btnUnpair" type="button" hidden>解除配對</button>
+      <hr style="border:none;border-top:1px solid var(--border);margin:14px 0" />
+      <p class="hint">裝置 User ID（匿名登入）</p>
       <code id="syncIdDisplay">—</code>
-      <button class="btn btn-primary btn-block btn-sm" id="btnSyncNow" type="button">重新載入雲端資料</button>
-      <p class="hint" style="margin-top:10px">進度存喺 Supabase 各張表（tasks／goals／steps…），唔再係一個 JSON blob。</p>
+      <button class="btn btn-primary btn-block btn-sm" id="btnSyncNow" type="button" style="margin-top:10px">重新載入雲端資料</button>
+      <p class="hint" style="margin-top:10px">進度存喺 Supabase 各張表（tasks／goals／steps…）。配對後兩部裝置讀寫同一份資料。</p>
     </div>
     <p class="hint" style="margin-top:12px;text-align:center">Icons by <a href="https://www.flaticon.com/uicons" target="_blank" rel="noopener noreferrer">Flaticon Uicons</a></p>
   </section>
@@ -1208,7 +1221,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
    */
   async function hydrateGcalFromServer() {
     const day = todayStr();
-    const uidv = uid();
+    const uidv = dataUid();
     if (!uidv) return null;
     try {
       const { data, error } = await sb.from('pos_gcal_days')
@@ -1263,7 +1276,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
             method: 'POST',
             mode: 'cors',
             headers,
-            body: JSON.stringify({ day, source: 'manual', user_id: uid() || null })
+            body: JSON.stringify({ day, source: 'manual', user_id: dataUid() || null })
           });
         } catch (e) {
           console.warn('[gcal] sync hook soft-fail', e);
@@ -1378,6 +1391,8 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
 
   const state = {
     user: null,
+    ownerUserId: null, /* linked shared account; null = use own uid */
+    ownSyncCode: null,
     profile: null,
     goals: [],
     stepsByGoal: {},
@@ -1458,6 +1473,9 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     return { doneDays, daysInMonth, pct, label, start, end };
   }
   function uid() { return state.user && state.user.id; }
+  /** Data owner: linked owner when paired, else self. Use for all pos_* reads/writes. */
+  function dataUid() { return state.ownerUserId || uid(); }
+  function isPaired() { return !!(state.ownerUserId && state.ownerUserId !== uid()); }
   function openTodayCount(list) {
     const src = list || state.tasks || [];
     return src.filter(t => t.status === 'open').length;
@@ -1532,13 +1550,13 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     applyTheme(theme);
     if (state.profile) {
       state.profile.theme = theme;
-      await sb.from('pos_profiles').update({ theme }).eq('user_id', uid());
+      await sb.from('pos_profiles').update({ theme }).eq('user_id', dataUid());
     }
   }
   async function setMuted(isMuted) {
     if (state.profile) state.profile.muted = isMuted;
     applyMute(isMuted);
-    if (state.profile) await sb.from('pos_profiles').update({ muted: isMuted }).eq('user_id', uid());
+    if (state.profile) await sb.from('pos_profiles').update({ muted: isMuted }).eq('user_id', dataUid());
   }
 
   /* ---------- auth ---------- */
@@ -1574,10 +1592,79 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     state.user = data.user;
   }
 
+  /* ---------- device pairing (G') ---------- */
+  async function resolveDeviceLink() {
+    const me = uid();
+    state.ownerUserId = null;
+    if (!me) return;
+    try {
+      const { data, error } = await sb.from('pos_device_links')
+        .select('owner_user_id')
+        .eq('device_user_id', me)
+        .maybeSingle();
+      if (error) {
+        console.warn('[pair] resolve failed', error.message || error);
+        return;
+      }
+      if (data && data.owner_user_id) state.ownerUserId = data.owner_user_id;
+    } catch (e) {
+      console.warn('[pair] resolve exception', e);
+    }
+  }
+
+  async function refreshOwnSyncCode() {
+    const me = uid();
+    if (!me) { state.ownSyncCode = null; return; }
+    // Prefer already-loaded profile when not paired
+    if (!isPaired() && state.profile && state.profile.sync_code) {
+      state.ownSyncCode = state.profile.sync_code;
+      return;
+    }
+    const { data, error } = await sb.from('pos_profiles')
+      .select('sync_code')
+      .eq('user_id', me)
+      .maybeSingle();
+    if (error) console.warn('[pair] sync_code', error.message || error);
+    state.ownSyncCode = (data && data.sync_code) || state.ownSyncCode || null;
+  }
+
+  async function pairWithCode(raw) {
+    const code = String(raw || '').trim().toLowerCase();
+    if (code.length < 8) {
+      toast('請輸入有效同步碼');
+      return false;
+    }
+    const { data, error } = await sb.rpc('pos_pair_with_code', { code });
+    if (error) {
+      toast(error.message || '配對失敗');
+      return false;
+    }
+    state.ownerUserId = (data && data.owner_user_id) || null;
+    await loadAll();
+    await ensureTodayDefaults();
+    renderAll();
+    toast('已配對，資料已共用');
+    return true;
+  }
+
+  async function unpairDevice() {
+    const { error } = await sb.rpc('pos_unpair_device');
+    if (error) {
+      toast(error.message || '解除失敗');
+      return false;
+    }
+    state.ownerUserId = null;
+    await loadAll();
+    await ensureTodayDefaults();
+    renderAll();
+    toast('已解除配對，返用本機帳號');
+    return true;
+  }
+
   /* ---------- load ---------- */
   async function loadAll() {
     const day = todayStr();
-    const uidv = uid();
+    const uidv = dataUid();
     const month = currentMonthRange();
     const reviewFrom = addDays(month.start, -7);
     const [
@@ -1602,6 +1689,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     if (firstErr) throw firstErr;
 
     state.profile = profileRes.data;
+    await refreshOwnSyncCode();
     state.goals = goalsRes.data || [];
     state.stepsByGoal = {};
     (stepsRes.data || []).forEach(s => {
@@ -1652,7 +1740,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
         return ha - hb;
       });
       ids = shuffled.slice(0, 5);
-      await sb.from('pos_ai_term_daily').upsert({ user_id: uid(), day, term_ids: ids }, { onConflict: 'user_id,day' });
+      await sb.from('pos_ai_term_daily').upsert({ user_id: dataUid(), day, term_ids: ids }, { onConflict: 'user_id,day' });
     }
     const { data: defs } = await sb.from('pos_ai_terms').select('*').in('id', ids);
     state.termDefs = {};
@@ -1666,7 +1754,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     // Find open tasks from previous days
     const { data: oldOpen } = await sb.from('pos_tasks')
       .select('*')
-      .eq('user_id', uid())
+      .eq('user_id', dataUid())
       .eq('status', 'open')
       .lt('day', day);
     if (!oldOpen || !oldOpen.length) return;
@@ -1674,14 +1762,14 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     for (const t of oldOpen) {
       await sb.from('pos_tasks').update({ status: 'rolled' }).eq('id', t.id);
       // recreate on today if room and not default duplicate
-      const { data: todayTasks } = await sb.from('pos_tasks').select('id,action_page,title,status').eq('user_id', uid()).eq('day', day);
+      const { data: todayTasks } = await sb.from('pos_tasks').select('id,action_page,title,status').eq('user_id', dataUid()).eq('day', day);
       const openCount = openTodayCount(todayTasks || []);
       // Only roll non-default custom tasks into today if under cap; defaults recreated by ensureTodayDefaults
       if (!t.is_default && openCount < MAX_TODAY) {
         const exists = (todayTasks || []).some(x => x.title === t.title && x.status !== 'rolled');
         if (!exists) {
           await sb.from('pos_tasks').insert({
-            user_id: uid(),
+            user_id: dataUid(),
             day,
             title: t.title,
             detail: t.detail,
@@ -1722,21 +1810,21 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     const gReview = goalByKind('daily_review');
     const gAcademy = goalByKind('academy');
 
-    const { data: existing } = await sb.from('pos_tasks').select('*').eq('user_id', uid()).eq('day', day);
+    const { data: existing } = await sb.from('pos_tasks').select('*').eq('user_id', dataUid()).eq('day', day);
     const list = existing || [];
     const has = (page) => list.some(t => t.action_page === page && t.status !== 'rolled');
 
     const inserts = [];
     if (gTerms && !has('ai_terms')) {
       inserts.push({
-        user_id: uid(), day, title: '每日五條 AI Terms', detail: '去頁面學今日 5 個詞，學完會自動勾任務。',
+        user_id: dataUid(), day, title: '每日五條 AI Terms', detail: '去頁面學今日 5 個詞，學完會自動勾任務。',
         status: 'open', goal_id: gTerms.id, action_page: 'ai_terms', is_default: true, sort_order: 1,
         color: gTerms.color || KIND_DEFAULT_COLOR.ai_terms || null
       });
     }
     if (gReview && !has('daily_review')) {
       inserts.push({
-        user_id: uid(), day, title: '每日回顧', detail: '收工 5 分鐘：完成、卡住、聽日第一件。',
+        user_id: dataUid(), day, title: '每日回顧', detail: '收工 5 分鐘：完成、卡住、聽日第一件。',
         status: 'open', goal_id: gReview.id, action_page: 'daily_review', is_default: true, sort_order: 2,
         color: gReview.color || KIND_DEFAULT_COLOR.daily_review || null
       });
@@ -1749,7 +1837,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       const next = steps.find(s => !s.done);
       if (next) {
         inserts.push({
-          user_id: uid(), day,
+          user_id: dataUid(), day,
           title: '讀 Claude Academy：' + next.title,
           detail: '完成後會自動更新課程目標進度。',
           status: 'open', goal_id: gAcademy.id, goal_step_id: next.id,
@@ -1762,7 +1850,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     if (inserts.length) {
       const { error } = await sb.from('pos_tasks').insert(inserts);
       if (error) throw error;
-      const { data: refreshed } = await sb.from('pos_tasks').select('*').eq('user_id', uid()).eq('day', day).order('sort_order');
+      const { data: refreshed } = await sb.from('pos_tasks').select('*').eq('user_id', dataUid()).eq('day', day).order('sort_order');
       state.tasks = refreshed || [];
     } else {
       state.tasks = list.sort((a, b) => a.sort_order - b.sort_order);
@@ -2095,6 +2183,18 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
 
   function renderSettings() {
     document.getElementById('syncIdDisplay').textContent = uid() || '—';
+    const codeEl = document.getElementById('syncCodeDisplay');
+    if (codeEl) codeEl.textContent = state.ownSyncCode || state.profile?.sync_code || '—';
+    const hint = document.getElementById('pairStatusHint');
+    const unpairBtn = document.getElementById('btnUnpair');
+    if (hint) {
+      if (isPaired()) {
+        hint.textContent = '已配對 · 同另一部裝置共用進度（資料帳號 ' + (dataUid() || '').slice(0, 8) + '…）';
+      } else {
+        hint.textContent = '未配對 · 用緊本機帳號';
+      }
+    }
+    if (unpairBtn) unpairBtn.hidden = !isPaired();
     setSyncBadge(state.ready ? 'synced' : 'offline', state.ready ? '已連線 · 真表後端' : '未連線');
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     document.getElementById('pwaInstallHint').classList.toggle('show', !isStandalone);
@@ -2134,7 +2234,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   }
 
   async function refreshAfterTaskDone() {
-    const uidv = uid();
+    const uidv = dataUid();
     const month = currentMonthRange();
     const [streaksRes, compsRes, goalsRes, stepsRes, monthTasksRes] = await Promise.all([
       sb.from('pos_streaks').select('*').eq('user_id', uidv).order('day', { ascending: false }).limit(400),
@@ -2163,11 +2263,11 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   async function learnTerm(termId) {
     const day = todayStr();
     const { error } = await sb.from('pos_ai_term_progress').upsert({
-      user_id: uid(), term_id: termId, day, learned_at: new Date().toISOString()
+      user_id: dataUid(), term_id: termId, day, learned_at: new Date().toISOString()
     }, { onConflict: 'user_id,term_id' });
     if (error) return toast('儲存失敗：' + error.message);
     if (!state.learned.some(l => l.term_id === termId)) {
-      state.learned.unshift({ user_id: uid(), term_id: termId, day, learned_at: new Date().toISOString() });
+      state.learned.unshift({ user_id: dataUid(), term_id: termId, day, learned_at: new Date().toISOString() });
     }
     sfxDone();
     renderTerms();
@@ -2184,7 +2284,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   async function saveReview() {
     const day = todayStr();
     const row = {
-      user_id: uid(),
+      user_id: dataUid(),
       day,
       done_summary: document.getElementById('reviewDone').value.trim(),
       stuck_summary: document.getElementById('reviewStuck').value.trim(),
@@ -2217,7 +2317,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     step.done = done;
     step.done_at = done ? new Date().toISOString() : null;
     // progress recalc via trigger
-    const { data: goals } = await sb.from('pos_goals').select('*').eq('user_id', uid()).eq('archived', false).order('sort_order');
+    const { data: goals } = await sb.from('pos_goals').select('*').eq('user_id', dataUid()).eq('archived', false).order('sort_order');
     state.goals = goals || [];
     if (done) { sfxDone(); celebrate(); } else sfxClick();
     renderCourse();
@@ -2299,7 +2399,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       const label = document.getElementById('tdLinkLabel').value.trim();
       if (!url) return toast('請填連結');
       const { error } = await sb.from('pos_task_assets').insert({
-        user_id: uid(), task_id: taskId, kind: 'link', url, label: label || null
+        user_id: dataUid(), task_id: taskId, kind: 'link', url, label: label || null
       });
       if (error) return toast(error.message);
       sfxDone();
@@ -2317,7 +2417,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       const { data: signed } = await sb.storage.from('pos-task-assets').createSignedUrl(path, 60 * 60 * 24 * 365);
       if (signed && signed.signedUrl) url = signed.signedUrl;
       const { error } = await sb.from('pos_task_assets').insert({
-        user_id: uid(), task_id: taskId, kind: 'image', url, label: file.name
+        user_id: dataUid(), task_id: taskId, kind: 'image', url, label: file.name
       });
       if (error) return toast(error.message);
       sfxDone();
@@ -2388,7 +2488,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       if (stepId && gAcademy) goalId = gAcademy.id;
       const color = selectedColorFrom('#modal [data-color-group="atColor"]');
       const row = {
-        user_id: uid(), day: todayStr(), title, detail, status: 'open',
+        user_id: dataUid(), day: todayStr(), title, detail, status: 'open',
         goal_id: goalId,
         goal_step_id: stepId,
         action_page: stepId ? 'academy' : null,
@@ -2430,7 +2530,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       if (!title) return toast('請填標題');
       const color = selectedColorFrom('#modal [data-color-group="agColor"]');
       const row = {
-        user_id: uid(), title,
+        user_id: dataUid(), title,
         description: document.getElementById('agDesc').value.trim(),
         track: document.getElementById('agTrack').value,
         kind: 'custom',
@@ -2485,7 +2585,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     if (toToday) {
       if (openTodayCount() >= MAX_TODAY) return toast('今日已滿 5 件未完成');
       const { data, error } = await sb.from('pos_tasks').insert({
-        user_id: uid(), day: todayStr(), title: body, status: 'open',
+        user_id: dataUid(), day: todayStr(), title: body, status: 'open',
         is_default: false, sort_order: 40
       }).select().single();
       if (error) return toast(error.message);
@@ -2494,7 +2594,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       sfxDone(); renderToday(); toast('已加到今日');
     } else {
       const { data, error } = await sb.from('pos_captures').insert({
-        user_id: uid(), body, status: 'inbox'
+        user_id: dataUid(), body, status: 'inbox'
       }).select().single();
       if (error) return toast(error.message);
       state.captures.unshift(data);
@@ -2531,12 +2631,12 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
         await sb.from('pos_profiles').update({
           theme: old.theme === 'dark' ? 'dark' : 'light',
           muted: !!old.muted
-        }).eq('user_id', uid());
+        }).eq('user_id', dataUid());
       }
       // captures
       if (Array.isArray(old.inbox) && old.inbox.length) {
         const rows = old.inbox.slice(0, 50).map(x => ({
-          user_id: uid(),
+          user_id: dataUid(),
           body: typeof x === 'string' ? x : (x.text || x.body || JSON.stringify(x)),
           status: 'inbox'
         }));
@@ -2560,7 +2660,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
           const termId = t.id || t.termId || t;
           if (typeof termId !== 'string') continue;
           await sb.from('pos_ai_term_progress').upsert({
-            user_id: uid(), term_id: termId, day: t.day || todayStr(),
+            user_id: dataUid(), term_id: termId, day: t.day || todayStr(),
             learned_at: t.at || new Date().toISOString()
           }, { onConflict: 'user_id,term_id' });
         }
@@ -2629,6 +2729,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     document.getElementById('btnSyncNow').onclick = async () => {
       sfxClick(); setSyncBadge('syncing', '同步中…');
       try {
+        await resolveDeviceLink();
         await loadAll();
         await ensureTodayDefaults();
       await ensureGoalColors();
@@ -2640,6 +2741,55 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
         toast(e.message || String(e));
       }
     };
+
+    const btnCopySync = document.getElementById('btnCopySyncCode');
+    if (btnCopySync) {
+      btnCopySync.onclick = async () => {
+        sfxClick();
+        const code = state.ownSyncCode || state.profile?.sync_code || '';
+        if (!code) return toast('未有同步碼');
+        try {
+          await navigator.clipboard.writeText(code);
+          toast('已複製同步碼');
+        } catch (_) {
+          toast(code);
+        }
+      };
+    }
+    const btnPair = document.getElementById('btnPairCode');
+    if (btnPair) {
+      btnPair.onclick = async () => {
+        sfxClick();
+        const input = document.getElementById('pairCodeInput');
+        const raw = input ? input.value : '';
+        btnPair.disabled = true;
+        try {
+          const ok = await pairWithCode(raw);
+          if (ok && input) input.value = '';
+        } finally {
+          btnPair.disabled = false;
+        }
+      };
+    }
+    const pairInput = document.getElementById('pairCodeInput');
+    if (pairInput) {
+      pairInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('btnPairCode')?.click();
+        }
+      });
+    }
+    const btnUnpair = document.getElementById('btnUnpair');
+    if (btnUnpair) {
+      btnUnpair.onclick = async () => {
+        sfxClick();
+        if (!confirm('解除配對後呢部裝置會返用自己嘅雲端資料，確定？')) return;
+        btnUnpair.disabled = true;
+        try { await unpairDevice(); }
+        finally { btnUnpair.disabled = false; }
+      };
+    }
 
     document.getElementById('moodPicker').onclick = (e) => {
       const b = e.target.closest('.mood-btn');
@@ -2706,7 +2856,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
         if (!cap) return;
         if (openTodayCount() >= MAX_TODAY) return toast('今日已滿 5 件未完成');
         const { data, error } = await sb.from('pos_tasks').insert({
-          user_id: uid(), day: todayStr(), title: cap.body, status: 'open', is_default: false, sort_order: 40
+          user_id: dataUid(), day: todayStr(), title: cap.body, status: 'open', is_default: false, sort_order: 40
         }).select().single();
         if (error) return toast(error.message);
         await sb.from('pos_captures').update({ status: 'converted' }).eq('id', id);
@@ -2767,6 +2917,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       await ensureAuth();
       const { error: bootErr } = await sb.rpc('pos_bootstrap_user');
       if (bootErr) throw bootErr;
+      await resolveDeviceLink();
       await migrateOldDataOnce();
       await loadAll();
       await rollIncompleteTasks();
