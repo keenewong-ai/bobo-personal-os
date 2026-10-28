@@ -1624,7 +1624,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       }).format(new Date(ts));
     } catch { return ''; }
   }
-  /** Due date short label: 10月30日 (no year). */
+  /** Task date short label: 10月30日 (no year). */
   function formatDueShort(iso) {
     if (!iso) return '';
     try {
@@ -1637,7 +1637,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     const today = todayStr();
     const overdue = String(due) < today;
     const cls = overdue ? 'badge due overdue' : 'badge due';
-    return `<span class="${cls}">到期 ${esc(formatDueShort(due))}</span>`;
+    return `<span class="${cls}">日期 ${esc(formatDueShort(due))}</span>`;
   }
   function normalizeDueInput(v) {
     const s = (v || '').trim();
@@ -2543,16 +2543,16 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       ? dueList.map(t => {
           const st = t.status === 'done' ? '<span class="badge">已完成</span>' : '<span class="badge">未做</span>';
           return `<div class="timeline-item">
-            <div class="tl-time">到期</div>
+            <div class="tl-time">日期</div>
             <div class="tl-body">${esc(t.title)} ${st}</div>
           </div>`;
         }).join('')
-      : '<p class="hint">呢日未有到期任務。</p>';
+      : '<p class="hint">呢日未有帶日期嘅任務。</p>';
 
-    // Paint due (by due_date) + completions + Google. Due ≠ 完成紀錄 (completion day).
+    // Paint dated tasks (by due_date) + completions + Google. Date ≠ 完成紀錄.
     body.innerHTML = `
       <div class="day-sec">
-        <div class="day-sec-h">${ico('calendar')} 到期任務 <span class="cnt">${dueList.length}</span></div>
+        <div class="day-sec-h">${ico('calendar')} 當日任務 <span class="cnt">${dueList.length}</span></div>
         ${dueHtml}
       </div>
       <div class="day-sec">
@@ -2838,12 +2838,12 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       <h2>任務詳情</h2>
       <div class="field"><label>標題</label><input id="tdTitle" value="${esc(t.title)}" /></div>
       <div class="field"><label>說明</label><textarea id="tdDetail">${esc(t.detail || '')}</textarea></div>
-      ${t.is_default ? '' : `<div class="field"><label>日期（到期）</label>
+      ${t.is_default ? '' : `<div class="field"><label>日期</label>
         <div class="due-row">
           <input type="date" id="tdDue" value="${esc(t.due_date || '')}" />
           <button type="button" class="btn btn-secondary btn-sm due-clear" id="tdDueClear">清除</button>
         </div>
-        <p class="hint">可改日期或清除；留空＝無到期日</p>
+        <p class="hint">可改或清除；留空＝無日期</p>
       </div>`}
       <div class="field"><label>卡片顏色</label>
         ${colorSwatchesHTML(curColor, 'tdColor')}
@@ -2946,7 +2946,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
           ${steps.map(s => `<option value="${s.id}">${esc(s.title)}</option>`).join('')}
         </select>
       </div>
-      <div class="field"><label>日期（到期，可選）</label>
+      <div class="field"><label>日期（可選）</label>
         <div class="due-row">
           <input type="date" id="atDue" value="" />
           <button type="button" class="btn btn-secondary btn-sm due-clear" id="atDueClear">清除</button>
