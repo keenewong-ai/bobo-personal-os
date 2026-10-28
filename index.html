@@ -229,6 +229,8 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; width: 100%; min-width: 
 .cal-grid {
   display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px; margin-bottom: 10px; width: 100%; min-width: 0;
+  /* Room for selection outline on first/last columns (overflow-x clips otherwise) */
+  padding: 3px 5px; box-sizing: border-box;
 }
 .cal-dow {
   text-align: center; font-size: clamp(10px, 2.8vw, 11px); font-weight: 800;
@@ -303,7 +305,7 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; width: 100%; min-width: 
 [data-theme="dark"] .day-gcal-title { color: #c5d0d6; }
 .day-gcal-empty { margin: 0; padding: 2px 0 4px; }
 @media (max-width: 400px) {
-  .cal-grid { gap: 2px; }
+  .cal-grid { gap: 2px; padding: 2px 4px; }
   .cal-day { border-radius: 8px; border-width: 1.5px; padding: 2px 1px; }
   .cal-day.selected { outline-width: 1.5px; outline-offset: 0; }
   .cal-nav { margin-bottom: 8px; }
