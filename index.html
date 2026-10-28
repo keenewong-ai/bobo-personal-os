@@ -327,10 +327,10 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; width: 100%; min-width: 
   height: calc(var(--nav-h) + var(--safe-b)); padding-bottom: var(--safe-b);
   background: var(--nav-bg); border-top: 2px solid var(--gray-100); display: flex; justify-content: center;
 }
-.nav-inner { max-width: 560px; width: 100%; display: grid; grid-template-columns: repeat(5, 1fr); }
+.nav-inner { max-width: 560px; width: 100%; display: grid; grid-template-columns: repeat(6, 1fr); }
 .nav-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px; color: var(--gray-400); font-size: 11px; font-weight: 800; min-height: var(--nav-h);
+  gap: 2px; color: var(--gray-400); font-size: 10px; font-weight: 800; min-height: var(--nav-h);
 }
 .nav-btn .ico { font-size: 22px; line-height: 1; }
 .nav-btn.active { color: var(--green-dark); }
@@ -364,6 +364,16 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; width: 100%; min-width: 
   border: 2px solid var(--gray-100); border-radius: var(--radius-sm); background: var(--card); margin-bottom: 8px;
 }
 .inbox-item p { flex: 1; font-size: 14px; font-weight: 600; word-break: break-word; }
+.inbox-head-row {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin: 20px 0 10px;
+}
+.inbox-head-row .section-title { margin:0; flex:1; }
+.inbox-see-all {
+  flex-shrink:0; font-size:12px; font-weight:800; color: var(--blue);
+  background:transparent; border:none; padding:6px 4px; cursor:pointer;
+}
+.inbox-see-all:hover { text-decoration: underline; }
 .toast {
   position: fixed; left: 50%; bottom: calc(var(--nav-h) + var(--safe-b) + 70px);
   transform: translateX(-50%) translateY(12px); background: var(--gray-900); color: #fff;
@@ -703,8 +713,6 @@ i.fi {
   display: block; font-size: 12px; font-weight: 700; color: var(--gray-600);
   white-space: nowrap; line-height: 1.3;
 }
-html.dark .today-heading,
-html.dark .today-date-muted { color: var(--gray-600); }
 .today-mode-seg {
   display:inline-flex; background: var(--gray-50); border: 2px solid var(--gray-100);
   border-radius: 999px; padding: 3px; gap: 2px; flex-shrink:0;
@@ -910,8 +918,17 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       </div>
       <div id="gcalEventList" class="gcal-rail" aria-live="polite"></div>
     </div>
-    <div class="section-title" style="margin-top:20px"><span>速記收件箱</span><span id="inboxCount"></span></div>
+    <div class="inbox-head-row">
+      <div class="section-title"><span>速記收件箱</span><span id="inboxCount"></span></div>
+      <button type="button" class="inbox-see-all" id="btnInboxSeeAll" hidden>睇全部 →</button>
+    </div>
     <div id="inboxList"></div>
+  </section>
+
+  <section id="view-inbox" class="view">
+    <div class="section-title"><span>速記收件箱</span><span id="inboxFullCount"></span></div>
+    <p class="hint" style="margin-bottom:12px">下面全部速記；可以變今日任務或者刪走。</p>
+    <div id="inboxFullList"></div>
   </section>
 
   <section id="view-goals" class="view">
@@ -954,6 +971,10 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
 
   <section id="view-more" class="view">
     <div class="more-list">
+      <button class="more-link" type="button" data-open="inbox">
+        <div class="ico"><i class="fi fi-rr-inbox" aria-hidden="true"></i></div>
+        <div><strong>速記收件箱</strong><span>全部速記 · 變今日任務或刪除</span></div>
+      </button>
       <button class="more-link" type="button" data-open="terms">
         <div class="ico"><i class="fi fi-rr-brain" aria-hidden="true"></i></div>
         <div><strong>每日五條 AI Terms</strong><span>每日 5 個新詞彙 · 累積已學可回睇</span></div>
@@ -1108,6 +1129,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     <button class="nav-btn" data-view="goals" type="button"><span class="ico"><i class="fi fi-rr-bullseye" aria-hidden="true"></i></span>目標</button>
     <button class="nav-btn" data-view="course" type="button"><span class="ico"><i class="fi fi-rr-book-open-cover" aria-hidden="true"></i></span>課程</button>
     <button class="nav-btn" data-view="calendar" type="button"><span class="ico"><i class="fi fi-rr-calendar" aria-hidden="true"></i></span>日曆</button>
+    <button class="nav-btn" data-view="inbox" type="button"><span class="ico"><i class="fi fi-rr-inbox" aria-hidden="true"></i></span>收件</button>
     <button class="nav-btn" data-view="more" type="button"><span class="ico"><i class="fi fi-rr-menu-dots" aria-hidden="true"></i></span>更多</button>
   </div>
 </nav>
@@ -2034,6 +2056,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     if (name === 'course') renderCourse();
     if (name === 'milestones') renderMilestones();
     if (name === 'today') renderToday();
+    if (name === 'inbox') renderInbox();
     if (name === 'settings') renderSettings();
   }
 
@@ -2099,19 +2122,41 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     renderInbox();
   }
 
-  function renderInbox() {
-    document.getElementById('inboxCount').textContent = state.captures.length ? state.captures.length + ' 則' : '';
-    const box = document.getElementById('inboxList');
-    if (!state.captures.length) {
-      box.innerHTML = '<p class="hint">速記會出現喺呢度，之後先分類。</p>';
-      return;
-    }
-    box.innerHTML = state.captures.map(c => `
-      <div class="inbox-item" data-cap="${c.id}">
+  function inboxItemHtml(c) {
+    return `<div class="inbox-item" data-cap="${c.id}">
         <p>${esc(c.body)}</p>
         <button type="button" class="icon-btn" data-cap-today="${c.id}" title="變今日任務">${ico('sunrise')}</button>
         <button type="button" class="icon-btn" data-cap-dismiss="${c.id}" title="刪除">${ico('trash')}</button>
-      </div>`).join('');
+      </div>`;
+  }
+
+  function renderInbox() {
+    const n = state.captures.length;
+    const countEl = document.getElementById('inboxCount');
+    if (countEl) countEl.textContent = n ? n + ' 則' : '';
+    const fullCount = document.getElementById('inboxFullCount');
+    if (fullCount) fullCount.textContent = n ? n + ' 則' : '';
+
+    const seeAll = document.getElementById('btnInboxSeeAll');
+    if (seeAll) seeAll.hidden = n === 0;
+
+    const homeBox = document.getElementById('inboxList');
+    if (homeBox) {
+      if (!n) {
+        homeBox.innerHTML = '<p class="hint">速記會出現喺呢度，之後先分類。</p>';
+      } else {
+        homeBox.innerHTML = state.captures.slice(0, 3).map(inboxItemHtml).join('');
+      }
+    }
+
+    const fullBox = document.getElementById('inboxFullList');
+    if (fullBox) {
+      if (!n) {
+        fullBox.innerHTML = '<div class="empty">' + ico('inbox','empty-ico') + '<h3>收件箱係空嘅</h3><p>用底部速記欄寫低諗到嘅嘢。</p></div>';
+      } else {
+        fullBox.innerHTML = state.captures.map(inboxItemHtml).join('');
+      }
+    }
   }
 
   function renderGoals() {
@@ -2947,6 +2992,8 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     document.getElementById('btnAddGoal').onclick = () => { sfxClick(); openAddGoalModal(); };
     document.getElementById('btnCaptureInbox').onclick = () => addCapture(false);
     document.getElementById('btnCaptureToday').onclick = () => addCapture(true);
+    const btnSeeAll = document.getElementById('btnInboxSeeAll');
+    if (btnSeeAll) btnSeeAll.onclick = () => { sfxClick(); showView('inbox'); };
     const todayModeSeg = document.getElementById('todayModeSeg');
     if (todayModeSeg && !todayModeSeg.dataset.bound) {
       todayModeSeg.dataset.bound = '1';
@@ -3118,7 +3165,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       });
     }
 
-    document.getElementById('inboxList').addEventListener('click', async (e) => {
+    async function onInboxAction(e) {
       const toToday = e.target.closest('[data-cap-today]');
       const dismiss = e.target.closest('[data-cap-dismiss]');
       if (toToday) {
@@ -3133,15 +3180,18 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
         await sb.from('pos_captures').update({ status: 'converted' }).eq('id', id);
         state.tasks.push(data);
         state.captures = state.captures.filter(c => c.id !== id);
-        sfxDone(); renderToday();
+        sfxDone(); renderToday(); toast('已變今日任務');
       }
       if (dismiss) {
         const id = dismiss.getAttribute('data-cap-dismiss');
         await sb.from('pos_captures').update({ status: 'dismissed' }).eq('id', id);
         state.captures = state.captures.filter(c => c.id !== id);
-        sfxClick(); renderInbox();
+        sfxClick(); renderInbox(); toast('已刪除');
       }
-    });
+    }
+    document.getElementById('inboxList').addEventListener('click', onInboxAction);
+    const inboxFull = document.getElementById('inboxFullList');
+    if (inboxFull) inboxFull.addEventListener('click', onInboxAction);
 
     document.getElementById('lessonGrid').addEventListener('click', (e) => {
       const b = e.target.closest('[data-step]');
