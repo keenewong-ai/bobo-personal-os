@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>日曆 Day View · Google 分區 · 五款 demo</title>
+<link rel="stylesheet" href="../vendor/uicons/css/uicons-regular-rounded.css" />
+<style>
+  :root {
+    --bg:#131f24; --panel:#0f171b; --text:#E8EEF1; --muted:#8FA3AD;
+    --card:#1a2228; --border:#2c3c44; --blue:#1CB0F6; --green:#58CC02;
+    --cal-blue:#4285F4; --cal-purple:#A142F4; --ghost:#3d5560;
+    --gcal-time:#9FD4E8; --gcal-line:#2a3d46; --gcal-body:#182228;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:"Noto Sans TC","PingFang HK",system-ui,-apple-system,sans-serif;
+    background:var(--bg); color:var(--text); padding:20px 16px 64px;
+  }
+  h1 { font-size:20px; margin:0 0 6px; font-weight:900; }
+  .lead { color:var(--muted); font-size:13px; margin:0 0 8px; line-height:1.55; max-width:460px; }
+  .warn {
+    display:inline-block; font-size:11px; font-weight:800; letter-spacing:.02em;
+    padding:4px 10px; border-radius:999px; background:#243840; color:#9FD4E8; margin-bottom:18px;
+  }
+  h2 { font-size:14px; margin:36px 0 6px; display:flex; align-items:center; gap:8px; font-weight:800; }
+  .tag { font-size:11px; font-weight:800; padding:3px 8px; border-radius:999px; background:#243840; color:#9FD4E8; }
+  .note { font-size:12px; color:var(--muted); margin:0 0 12px; max-width:460px; line-height:1.5; }
+  .phones { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-start; }
+  .phone {
+    width:100%; max-width:380px; background:var(--panel);
+    border:2px solid var(--border); border-radius:20px; padding:14px 12px 16px;
+  }
+  .phone .ph-label {
+    font-size:11px; font-weight:800; color:var(--muted); letter-spacing:.04em;
+    text-transform:uppercase; margin:0 0 10px;
+  }
+  /* mini month context */
+  .mini-cal {
+    opacity:.7; margin-bottom:12px; pointer-events:none;
+  }
+  .mini-cal .m-title { font-size:13px; font-weight:900; margin-bottom:6px; }
+  .mini-grid {
+    display:grid; grid-template-columns:repeat(7,1fr); gap:3px; font-size:10px; font-weight:800;
+    text-align:center; color:var(--muted);
+  }
+  .mini-grid .d {
+    aspect-ratio:1; border-radius:8px; display:grid; place-items:center;
+    background:transparent;
+  }
+  .mini-grid .d.on { background:rgba(88,204,2,.22); color:var(--green); }
+  .mini-grid .d.sel { background:var(--blue); color:#061018; }
+
+  .day-card {
+    background:var(--card); border:2px solid var(--border); border-radius:16px;
+    padding:12px 12px 14px;
+  }
+  .day-card h3 {
+    font-size:15px; font-weight:900; margin:0 0 10px;
+  }
+  .sec-h {
+    font-size:12px; font-weight:800; color:var(--muted); letter-spacing:.03em;
+    margin:0 0 8px; display:flex; align-items:center; gap:6px;
+  }
+  .sec-h i { font-size:13px; }
+  .sec-h.gcal i { color:var(--cal-blue); }
+  .sec-h .cnt {
+    margin-left:auto; font-size:10px; font-weight:800;
+    padding:2px 7px; border-radius:999px; background:#243840; color:#9FD4E8;
+  }
+
+  /* completion timeline (existing) */
+  .timeline-item {
+    display:flex; gap:12px; padding:10px 0;
+    border-bottom:1px solid #24353C; min-width:0;
+  }
+  .timeline-item:last-child { border-bottom:none; }
+  .tl-time {
+    width:52px; flex-shrink:0; font-size:12px; font-weight:800;
+    color:var(--muted); padding-top:2px; font-variant-numeric:tabular-nums;
+  }
+  .tl-body { flex:1; min-width:0; font-weight:700; font-size:14px; }
+  .badge {
+    display:inline-block; font-size:10px; font-weight:800;
+    padding:2px 7px; border-radius:999px; background:#243840; color:#9FD4E8;
+    margin-left:4px; vertical-align:middle;
+  }
+
+  /* Google timeline (style A language) */
+  .gcal-rail { display:flex; flex-direction:column; gap:2px; }
+  .gcal-ev {
+    display:grid; grid-template-columns:58px 1fr; gap:10px; align-items:stretch;
+    position:relative; min-height:48px;
+  }
+  .gcal-time-col {
+    display:flex; flex-direction:column; align-items:flex-end; justify-content:flex-start;
+    padding-top:2px; padding-right:10px; position:relative;
+  }
+  .gcal-time-col .gcal-t {
+    font-size:12px; font-weight:800; color:var(--gcal-time);
+    font-variant-numeric:tabular-nums; line-height:1.2;
+  }
+  .gcal-time-col .gcal-end {
+    font-size:10px; color:var(--muted); margin-top:2px; font-variant-numeric:tabular-nums;
+  }
+  .gcal-time-col::after {
+    content:""; position:absolute; right:-1px; top:8px; width:9px; height:9px;
+    border-radius:50%; background:var(--cal-blue); border:2px solid var(--bg); z-index:1;
+  }
+  .gcal-ev:not(:last-child) .gcal-body::before {
+    content:""; position:absolute; left:-16px; top:16px; bottom:-14px; width:2px;
+    background:var(--gcal-line);
+  }
+  .gcal-body {
+    position:relative; padding:10px 12px 10px 14px; border-radius:12px;
+    border:1px solid var(--gcal-line); background:var(--gcal-body);
+  }
+  .gcal-title { font-size:13px; font-weight:800; line-height:1.3; word-break:break-word; }
+  .gcal-meta {
+    font-size:11px; color:var(--muted); margin-top:4px;
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+  }
+  .gcal-meta span { display:inline-flex; align-items:center; gap:4px; }
+  .gcal-meta .fi { font-size:11px; opacity:.85; }
+
+  /* A: second card / bordered block */
+  .block-gcal {
+    margin-top:14px; padding-top:12px; border-top:2px dashed #2a3d46;
+  }
+  .card-gcal {
+    margin-top:12px; padding:12px; border-radius:14px;
+    border:2px solid rgba(66,133,244,.35); background:#152028;
+  }
+
+  /* B: tabs */
+  .tabs {
+    display:flex; gap:6px; margin-bottom:12px; background:#121a1e;
+    padding:4px; border-radius:12px; border:1px solid var(--border);
+  }
+  .tab {
+    flex:1; text-align:center; font-size:12px; font-weight:800;
+    padding:8px 6px; border-radius:10px; color:var(--muted); border:none;
+    background:transparent; cursor:pointer; font-family:inherit;
+  }
+  .tab.active { background:#243840; color:var(--text); }
+  .tab.gactive { background:rgba(66,133,244,.22); color:#9FD4E8; }
+  .tab-pane[hidden] { display:none; }
+
+  /* C: collapsible */
+  .collapse-head {
+    width:100%; display:flex; align-items:center; gap:8px;
+    background:transparent; border:none; color:inherit; font-family:inherit;
+    padding:10px 0; cursor:pointer; text-align:left;
+    border-top:2px dashed #2a3d46; margin-top:8px;
+  }
+  .collapse-head .sec-h { margin:0; flex:1; }
+  .chev {
+    width:28px; height:28px; border-radius:8px; background:#243840;
+    display:grid; place-items:center; color:var(--cal-blue); transition:transform .2s;
+  }
+  .collapse-head[aria-expanded="false"] .chev { transform:rotate(-90deg); }
+  .collapse-body { padding-bottom:2px; }
+  .collapse-body[hidden] { display:none; }
+
+  /* D: chips */
+  .chip-row {
+    display:flex; flex-wrap:wrap; gap:8px; margin-top:4px;
+  }
+  .chip {
+    display:inline-flex; align-items:center; gap:6px;
+    max-width:100%; padding:8px 10px; border-radius:999px;
+    background:rgba(66,133,244,.14); border:1.5px solid rgba(66,133,244,.4);
+    font-size:12px; font-weight:800; line-height:1.2;
+  }
+  .chip .when {
+    flex-shrink:0; font-size:10px; font-weight:800; color:var(--gcal-time);
+    font-variant-numeric:tabular-nums;
+  }
+  .chip .tt {
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;
+  }
+
+  /* E: muted inset + left bar */
+  .inset-list {
+    margin-top:4px; border-radius:14px; overflow:hidden;
+    border:1px solid #2a3d46; background:#141c21;
+  }
+  .inset-ev {
+    display:flex; gap:0; border-bottom:1px solid #24353C; min-height:44px;
+  }
+  .inset-ev:last-child { border-bottom:none; }
+  .inset-bar { width:4px; flex-shrink:0; background:var(--cal-blue); }
+  .inset-body { flex:1; padding:10px 12px; min-width:0; }
+  .inset-when {
+    font-size:11px; font-weight:800; color:var(--gcal-time);
+    font-variant-numeric:tabular-nums; margin-bottom:2px;
+  }
+  .inset-title {
+    font-size:13px; font-weight:800; color:#c5d0d6; line-height:1.3;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+</style>
+</head>
+<body>
+  <h1>日曆 Day View · Google 分區</h1>
+  <p class="lead">完成紀錄同 Google 行程分開兩區。揀完 <strong>A／B／C／D／E</strong> 回覆我，之後會套用到真正日曆 day view。靜態 preview · 冇真同步。</p>
+  <span class="warn">展示用 · 完成 ≠ Google · 已去重（每 task 一日只顯示一次）</span>
+
+  <!-- ========== A ========== -->
+  <h2><span class="tag">A</span> 第二區（上下分卡）</h2>
+  <p class="note">上面「完成紀錄」時間軸；下面獨立「Google 行程」卡（藍邊），兩段垂直堆疊。</p>
+  <div class="phones">
+    <div class="phone">
+      <div class="ph-label">Phone mock · Day detail</div>
+      <div class="mini-cal">
+        <div class="m-title">2026年10月</div>
+        <div class="mini-grid">
+          <div class="d">日</div><div class="d">一</div><div class="d">二</div><div class="d">三</div><div class="d">四</div><div class="d">五</div><div class="d">六</div>
+          <div class="d"></div><div class="d"></div><div class="d"></div><div class="d">1</div><div class="d">2</div><div class="d">3</div><div class="d">4</div>
+          <div class="d">5</div><div class="d">6</div><div class="d">7</div><div class="d">8</div><div class="d">9</div><div class="d">10</div><div class="d">11</div>
+          <div class="d">12</div><div class="d">13</div><div class="d">14</div><div class="d">15</div><div class="d">16</div><div class="d">17</div><div class="d">18</div>
+          <div class="d">19</div><div class="d">20</div><div class="d">21</div><div class="d">22</div><div class="d">23</div><div class="d">24</div><div class="d">25</div>
+          <div class="d">26</div><div class="d on">27</div><div class="d sel">28</div><div class="d">29</div><div class="d">30</div><div class="d">31</div><div class="d"></div>
+        </div>
+      </div>
+      <div class="day-card">
+        <h3>10月28日 星期三</h3>
+        <div class="sec-h"><i class="fi fi-rr-checkbox" aria-hidden="true"></i> 完成紀錄 <span class="cnt">2</span></div>
+        <div class="timeline-item">
+          <div class="tl-time">08:12</div>
+          <div class="tl-body">每日五條 AI terms <span class="badge">ai_terms</span></div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-time">21:40</div>
+          <div class="tl-body">每日回顧 <span class="badge">daily_review</span></div>
+        </div>
+        <div class="card-gcal">
+          <div class="sec-h gcal"><i class="fi fi-rr-calendar" aria-hidden="true"></i> Google 行程 <span class="cnt">2</span></div>
+          <div class="gcal-rail">
+            <div class="gcal-ev">
+              <div class="gcal-time-col"><span class="gcal-t">00:00</span><span class="gcal-end">02:30</span></div>
+              <div class="gcal-body">
+                <div class="gcal-title">土超男：Ziraat vs Gaziantep（石川祐希）</div>
+                <div class="gcal-meta"><span><i class="fi fi-rr-calendar" aria-hidden="true"></i> Google</span></div>
+              </div>
+            </div>
+            <div class="gcal-ev">
+              <div class="gcal-time-col"><span class="gcal-t">09:00</span><span class="gcal-end">09:45</span></div>
+              <div class="gcal-body">
+                <div class="gcal-title">產品 standup</div>
+                <div class="gcal-meta"><span><i class="fi fi-rr-video-camera" aria-hidden="true"></i> Meet</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== B ========== -->
+  <h2><span class="tag">B</span> 分頁（Tabs）</h2>
+  <p class="note">Day detail 內「完成｜Google」兩個 tab 切換；下面並排顯示兩個 tab 狀態。</p>
+  <div class="phones">
+    <div class="phone">
+      <div class="ph-label">Tab · 完成（預設）</div>
+      <div class="day-card">
+        <h3>10月28日 星期三</h3>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab active" aria-selected="true">完成</button>
+          <button type="button" class="tab" aria-selected="false">Google</button>
+        </div>
+        <div class="tab-pane">
+          <div class="sec-h"><i class="fi fi-rr-checkbox" aria-hidden="true"></i> 完成紀錄 <span class="cnt">2</span></div>
+          <div class="timeline-item">
+            <div class="tl-time">08:12</div>
+            <div class="tl-body">每日五條 AI terms <span class="badge">ai_terms</span></div>
+          </div>
+          <div class="timeline-item">
+            <div class="tl-time">21:40</div>
+            <div class="tl-body">每日回顧 <span class="badge">daily_review</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="ph-label">Tab · Google</div>
+      <div class="day-card">
+        <h3>10月28日 星期三</h3>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab" aria-selected="false">完成</button>
+          <button type="button" class="tab gactive" aria-selected="true">Google</button>
+        </div>
+        <div class="tab-pane">
+          <div class="sec-h gcal"><i class="fi fi-rr-calendar" aria-hidden="true"></i> Google 行程 <span class="cnt">2</span></div>
+          <div class="gcal-rail">
+            <div class="gcal-ev">
+              <div class="gcal-time-col"><span class="gcal-t">00:00</span><span class="gcal-end">02:30</span></div>
+              <div class="gcal-body">
+                <div class="gcal-title">土超男：Ziraat vs Gaziantep（石川祐希）</div>
+                <div class="gcal-meta"><span><i class="fi fi-rr-calendar" aria-hidden="true"></i> Google</span></div>
+              </div>
+            </div>
+            <div class="gcal-ev">
+              <div class="gcal-time-col"><span class="gcal-t">09:00</span><span class="gcal-end">09:45</span></div>
+              <div class="gcal-body">
+                <div class="gcal-title">產品 standup</div>
+                <div class="gcal-meta"><span><i class="fi fi-rr-video-camera" aria-hidden="true"></i> Meet</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== C ========== -->
+  <h2><span class="tag">C</span> 可摺疊</h2>
+  <p class="note">完成紀錄常顯；下面「Google 行程」可摺疊。左邊展開、右邊收起；亦可撳 header 互動切換。</p>
+  <div class="phones">
+    <div class="phone">
+      <div class="ph-label">展開</div>
+      <div class="day-card" data-collapse-demo>
+        <h3>10月28日 星期三</h3>
+        <div class="sec-h"><i class="fi fi-rr-checkbox" aria-hidden="true"></i> 完成紀錄 <span class="cnt">2</span></div>
+        <div class="timeline-item">
+          <div class="tl-time">08:12</div>
+          <div class="tl-body">每日五條 AI terms <span class="badge">ai_terms</span></div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-time">21:40</div>
+          <div class="tl-body">每日回顧 <span class="badge">daily_review</span></div>
+        </div>
+        <button type="button" class="collapse-head" aria-expanded="true" data-toggle>
+          <span class="sec-h gcal"><i class="fi fi-rr-calendar" aria-hidden="true"></i> Google 行程 <span class="cnt">2</span></span>
+          <span class="chev" aria-hidden="true"><i class="fi fi-rr-angle-small-down"></i></span>
+        </button>
+        <div class="collapse-body" data-panel>
+          <div class="gcal-rail">
+            <div class="gcal-ev">
+              <div class="gcal-time-col"><span class="gcal-t">00:00</span><span class="gcal-end">02:30</span></div>
+              <div class="gcal-body">
+                <div class="gcal-title">土超男：Ziraat vs Gaziantep（石川祐希）</div>
+                <div class="gcal-meta"><span><i class="fi fi-rr-calendar" aria-hidden="true"></i> Google</span></div>
+              </div>
+            </div>
+            <div class="gcal-ev">
+              <div class="gcal-time-col"><span class="gcal-t">09:00</span><span class="gcal-end">09:45</span></div>
+              <div class="gcal-body">
+                <div class="gcal-title">產品 standup</div>
+                <div class="gcal-meta"><span><i class="fi fi-rr-video-camera" aria-hidden="true"></i> Meet</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="ph-label">收起</div>
+      <div class="day-card" data-collapse-demo>
+        <h3>10月28日 星期三</h3>
+        <div class="sec-h"><i class="fi fi-rr-checkbox" aria-hidden="true"></i> 完成紀錄 <span class="cnt">2</span></div>
+        <div class="timeline-item">
+          <div class="tl-time">08:12</div>
+          <div class="tl-body">每日五條 AI terms <span class="badge">ai_terms</span></div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-time">21:40</div>
+          <div class="tl-body">每日回顧 <span class="badge">daily_review</span></div>
+        </div>
+        <button type="button" class="collapse-head" aria-expanded="false" data-toggle>
+          <span class="sec-h gcal"><i class="fi fi-rr-calendar" aria-hidden="true"></i> Google 行程 <span class="cnt">2</span></span>
+          <span class="chev" aria-hidden="true"><i class="fi fi-rr-angle-small-down"></i></span>
+        </button>
+        <div class="collapse-body" data-panel hidden>
+          <div class="gcal-rail">
+            <div class="gcal-ev">
+              <div class="gcal-time-col"><span class="gcal-t">00:00</span><span class="gcal-end">02:30</span></div>
+              <div class="gcal-body"><div class="gcal-title">土超男：Ziraat vs Gaziantep（石川祐希）</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== D ========== -->
+  <h2><span class="tag">D</span> Google chips 橫列</h2>
+  <p class="note">完成紀錄下面一排藍 pill／chip（時間＋短標題），慳位、一眼掃完當日行程。</p>
+  <div class="phones">
+    <div class="phone">
+      <div class="ph-label">Phone mock · chips</div>
+      <div class="day-card">
+        <h3>10月28日 星期三</h3>
+        <div class="sec-h"><i class="fi fi-rr-checkbox" aria-hidden="true"></i> 完成紀錄 <span class="cnt">2</span></div>
+        <div class="timeline-item">
+          <div class="tl-time">08:12</div>
+          <div class="tl-body">每日五條 AI terms <span class="badge">ai_terms</span></div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-time">21:40</div>
+          <div class="tl-body">每日回顧 <span class="badge">daily_review</span></div>
+        </div>
+        <div class="block-gcal">
+          <div class="sec-h gcal"><i class="fi fi-rr-calendar" aria-hidden="true"></i> Google 行程 <span class="cnt">2</span></div>
+          <div class="chip-row">
+            <span class="chip"><span class="when">00:00</span><span class="tt">土超男：Ziraat vs Gaziantep</span></span>
+            <span class="chip"><span class="when">09:00</span><span class="tt">產品 standup</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== E ========== -->
+  <h2><span class="tag">E</span> 淡色 inset 列表（左藍條）</h2>
+  <p class="note">完成紀錄下面一隻 muted 列表；每行左藍條＋時間＋標題，比時間軸更扁、唔搶戲。</p>
+  <div class="phones">
+    <div class="phone">
+      <div class="ph-label">Phone mock · inset</div>
+      <div class="day-card">
+        <h3>10月28日 星期三</h3>
+        <div class="sec-h"><i class="fi fi-rr-checkbox" aria-hidden="true"></i> 完成紀錄 <span class="cnt">2</span></div>
+        <div class="timeline-item">
+          <div class="tl-time">08:12</div>
+          <div class="tl-body">每日五條 AI terms <span class="badge">ai_terms</span></div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-time">21:40</div>
+          <div class="tl-body">每日回顧 <span class="badge">daily_review</span></div>
+        </div>
+        <div class="block-gcal">
+          <div class="sec-h gcal"><i class="fi fi-rr-calendar" aria-hidden="true"></i> Google 行程 <span class="cnt">2</span></div>
+          <div class="inset-list">
+            <div class="inset-ev">
+              <div class="inset-bar" aria-hidden="true"></div>
+              <div class="inset-body">
+                <div class="inset-when">00:00 – 02:30</div>
+                <div class="inset-title">土超男：Ziraat vs Gaziantep（石川祐希）</div>
+              </div>
+            </div>
+            <div class="inset-ev">
+              <div class="inset-bar" aria-hidden="true"></div>
+              <div class="inset-body">
+                <div class="inset-when">09:00 – 09:45</div>
+                <div class="inset-title">產品 standup</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+document.querySelectorAll('[data-collapse-demo]').forEach(function(root){
+  var btn = root.querySelector('[data-toggle]');
+  var panel = root.querySelector('[data-panel]');
+  if (!btn || !panel) return;
+  btn.addEventListener('click', function(){
+    var open = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+    panel.hidden = open;
+  });
+});
+</script>
+</body>
+</html>

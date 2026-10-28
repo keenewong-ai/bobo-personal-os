@@ -2168,7 +2168,25 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   function renderDayDetail(iso) {
     state.selectedDay = iso;
     document.getElementById('dayDetailTitle').textContent = formatDisplayDate(iso);
-    const items = state.completions.filter(c => c.day === iso);
+    const raw = state.completions.filter(c => c.day === iso);
+    // Deduplicate by ref_task_id: one row per task per day (keep earliest occurred_at).
+    // Completions without ref_task_id stay unique by completion id.
+    const byKey = new Map();
+    for (const c of raw) {
+      const key = (c.ref_task_id != null && String(c.ref_task_id).trim() !== '')
+        ? 't:' + String(c.ref_task_id)
+        : 'c:' + String(c.id || c.occurred_at + '|' + c.title);
+      const prev = byKey.get(key);
+      if (!prev) { byKey.set(key, c); continue; }
+      const a = Date.parse(c.occurred_at || '') || 0;
+      const b = Date.parse(prev.occurred_at || '') || 0;
+      if (a && (!b || a < b)) byKey.set(key, c);
+    }
+    const items = Array.from(byKey.values()).sort((x, y) => {
+      const ax = Date.parse(x.occurred_at || '') || 0;
+      const ay = Date.parse(y.occurred_at || '') || 0;
+      return ax - ay;
+    });
     const body = document.getElementById('dayDetailBody');
     if (!items.length) {
       body.innerHTML = '<p class="hint">呢日未有完成紀錄。</p>';
