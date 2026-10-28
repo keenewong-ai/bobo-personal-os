@@ -362,8 +362,11 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; width: 100%; min-width: 
 .inbox-item {
   display: flex; gap: 10px; align-items: flex-start; padding: 12px;
   border: 2px solid var(--gray-100); border-radius: var(--radius-sm); background: var(--card); margin-bottom: 8px;
+  cursor: pointer; transition: border-color .12s, transform .12s;
 }
+.inbox-item:active { transform: scale(.985); }
 .inbox-item p { flex: 1; font-size: 14px; font-weight: 600; word-break: break-word; }
+.inbox-item .icon-btn { cursor: pointer; }
 .inbox-head-row {
   display:flex; align-items:center; justify-content:space-between; gap:10px;
   margin: 20px 0 10px;
@@ -2123,7 +2126,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   }
 
   function inboxItemHtml(c) {
-    return `<div class="inbox-item" data-cap="${c.id}">
+    return `<div class="inbox-item" data-cap="${c.id}" role="button" tabindex="0" title="撳開編輯">
         <p>${esc(c.body)}</p>
         <button type="button" class="icon-btn" data-cap-today="${c.id}" title="變今日任務">${ico('sunrise')}</button>
         <button type="button" class="icon-btn" data-cap-dismiss="${c.id}" title="刪除">${ico('trash')}</button>
@@ -2628,6 +2631,35 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   function closeModal() {
     document.getElementById('modalBackdrop').classList.remove('open');
     document.getElementById('modal').innerHTML = '';
+  }
+
+  function openInboxEdit(capId) {
+    const cap = state.captures.find(c => c.id === capId);
+    if (!cap) return;
+    sfxClick();
+    openModal(`
+      <h2>編輯速記</h2>
+      <div class="field">
+        <label>內容</label>
+        <textarea id="capEditBody" rows="5" placeholder="寫低諗到嘅嘢…">${esc(cap.body || '')}</textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="capEditCancel">取消</button>
+        <button type="button" class="btn btn-primary" id="capEditSave">儲存</button>
+      </div>
+    `);
+    const ta = document.getElementById('capEditBody');
+    if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+    document.getElementById('capEditCancel').onclick = () => { sfxClick(); closeModal(); };
+    document.getElementById('capEditSave').onclick = async () => {
+      const body = (document.getElementById('capEditBody').value || '').trim();
+      if (!body) return toast('請填內容');
+      const { error } = await sb.from('pos_captures').update({ body }).eq('id', capId);
+      if (error) return toast(error.message);
+      const row = state.captures.find(c => c.id === capId);
+      if (row) row.body = body;
+      sfxDone(); closeModal(); renderInbox(); toast('已儲存');
+    };
   }
 
   async function openTaskDetail(taskId) {
@@ -3169,6 +3201,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       const toToday = e.target.closest('[data-cap-today]');
       const dismiss = e.target.closest('[data-cap-dismiss]');
       if (toToday) {
+        e.stopPropagation();
         const id = toToday.getAttribute('data-cap-today');
         const cap = state.captures.find(c => c.id === id);
         if (!cap) return;
@@ -3181,13 +3214,18 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
         state.tasks.push(data);
         state.captures = state.captures.filter(c => c.id !== id);
         sfxDone(); renderToday(); toast('已變今日任務');
+        return;
       }
       if (dismiss) {
+        e.stopPropagation();
         const id = dismiss.getAttribute('data-cap-dismiss');
         await sb.from('pos_captures').update({ status: 'dismissed' }).eq('id', id);
         state.captures = state.captures.filter(c => c.id !== id);
         sfxClick(); renderInbox(); toast('已刪除');
+        return;
       }
+      const card = e.target.closest('[data-cap]');
+      if (card) openInboxEdit(card.getAttribute('data-cap'));
     }
     document.getElementById('inboxList').addEventListener('click', onInboxAction);
     const inboxFull = document.getElementById('inboxFullList');
