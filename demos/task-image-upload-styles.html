@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>任務卡 · 多圖介面 · 三款 demo</title>
+<link rel="stylesheet" href="../vendor/uicons/css/uicons-regular-rounded.css" />
+<style>
+  :root {
+    --bg:#131f24; --panel:#0f171b; --text:#E8EEF1; --muted:#8FA3AD;
+    --card:#1a2228; --border:#2c3c44; --blue:#1CB0F6; --green:#58CC02;
+    --ghost:#3d5560; --stripe:rgba(255,255,255,.04);
+    --danger:#FF4B4B;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:"Noto Sans TC","PingFang HK",system-ui,-apple-system,sans-serif;
+    background:var(--bg); color:var(--text); padding:20px 16px 72px;
+  }
+  h1 { font-size:20px; margin:0 0 6px; font-weight:900; }
+  .lead { color:var(--muted); font-size:13px; margin:0 0 8px; line-height:1.55; max-width:460px; }
+  .warn {
+    display:inline-block; font-size:11px; font-weight:800; letter-spacing:.02em;
+    padding:4px 10px; border-radius:999px; background:#243840; color:#9FD4E8; margin-bottom:18px;
+  }
+  h2 { font-size:14px; margin:36px 0 6px; display:flex; align-items:center; gap:8px; font-weight:800; }
+  .tag { font-size:11px; font-weight:800; padding:3px 8px; border-radius:999px; background:#243840; color:#9FD4E8; }
+  .note { font-size:12px; color:var(--muted); margin:0 0 12px; max-width:460px; line-height:1.5; }
+  .phone {
+    width:100%; max-width:420px; background:var(--panel);
+    border:2px solid var(--border); border-radius:20px; padding:14px 12px 16px;
+  }
+  .ph-label {
+    font-size:11px; font-weight:800; color:var(--muted); letter-spacing:.04em;
+    text-transform:uppercase; margin:0 0 10px;
+  }
+
+  /* —— today task card (stage style) —— */
+  .task {
+    display:flex; gap:12px; align-items:flex-start;
+    padding:14px 14px 12px; border-radius:16px; border:2px solid var(--border);
+    background-color:var(--card);
+    background-image:repeating-linear-gradient(-45deg, transparent 0 14px, var(--stripe) 14px 28px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+    position:relative;
+  }
+  .task .check {
+    width:28px; height:28px; border-radius:50%; border:3px solid #8aa0aa; flex-shrink:0;
+    display:grid; place-items:center; font-weight:900; margin-top:2px; background:transparent; color:transparent;
+    font-size:13px; padding:0; cursor:default;
+  }
+  .task.done .check { background:var(--green); border-color:var(--green); color:#fff; }
+  .task-body { flex:1; min-width:0; }
+  .task-title { font-size:15px; font-weight:800; }
+  .task-meta { font-size:12px; color:var(--muted); margin-top:4px; display:flex; flex-wrap:wrap; gap:6px; }
+  .badge {
+    font-size:11px; font-weight:800; padding:2px 8px; border-radius:999px;
+    background:#243038; color:var(--muted);
+  }
+  .dot {
+    width:10px; height:10px; border-radius:50%; margin-top:8px; flex-shrink:0; background:#FF8FB5;
+  }
+  .goto {
+    margin-top:8px; display:inline-block; border:2px solid var(--ghost); color:var(--blue);
+    border-radius:12px; padding:6px 12px; font-size:12px; font-weight:800; background:transparent;
+  }
+
+  /* shared photo helpers */
+  .photos { margin-top:10px; }
+  .photo {
+    position:relative; overflow:hidden; background:#243038;
+    background-size:cover; background-position:center;
+  }
+  .photo img { width:100%; height:100%; object-fit:cover; display:block; }
+  .del {
+    position:absolute; top:4px; right:4px; width:22px; height:22px; border-radius:50%;
+    border:none; background:rgba(0,0,0,.55); color:#fff; display:grid; place-items:center;
+    font-size:11px; padding:0; cursor:pointer; backdrop-filter:blur(4px);
+  }
+  .del:active { transform:scale(.92); }
+  .add-zone {
+    border:2px dashed #3d5560; border-radius:12px; background:rgba(28,176,246,.06);
+    color:var(--blue); display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:4px; cursor:pointer; font-weight:800; font-size:12px; text-align:center;
+    transition:border-color .15s, background .15s;
+  }
+  .add-zone:hover, .add-zone:focus-within { border-color:var(--blue); background:rgba(28,176,246,.12); }
+  .add-zone i { font-size:18px; }
+  .add-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .add-wrap { position:relative; }
+  .cnt-chip {
+    display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:800;
+    padding:2px 8px; border-radius:999px; background:#243840; color:#9FD4E8;
+  }
+  .hint-mini { font-size:11px; color:var(--muted); margin-top:6px; font-weight:700; }
+
+  /* —— Demo A: grid + dashed add cell —— */
+  .a-grid {
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;
+  }
+  .a-grid .photo { aspect-ratio:1; border-radius:12px; }
+  .a-grid .add-wrap { aspect-ratio:1; }
+  .a-grid .add-zone { width:100%; height:100%; border-radius:12px; min-height:0; }
+
+  /* —— Demo B: horizontal strip + button —— */
+  .b-strip {
+    display:flex; gap:10px; overflow-x:auto; padding-bottom:4px;
+    scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
+  }
+  .b-strip::-webkit-scrollbar { height:4px; }
+  .b-strip::-webkit-scrollbar-thumb { background:#3d5560; border-radius:4px; }
+  .b-strip .photo {
+    flex:0 0 148px; height:110px; border-radius:14px; scroll-snap-align:start;
+  }
+  .b-empty {
+    position:relative; width:100%; min-height:96px; border-radius:14px;
+  }
+  .b-empty .add-zone { min-height:96px; width:100%; border-radius:14px; font-size:13px; gap:6px; }
+  .b-empty .add-zone i { font-size:22px; }
+  .b-add-btn {
+    margin-top:8px; width:100%; display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    border:2px solid var(--ghost); background:transparent; color:var(--blue);
+    border-radius:12px; padding:8px 12px; font-size:13px; font-weight:800; cursor:pointer;
+    position:relative;
+  }
+  .b-add-btn input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .b-add-btn i { font-size:15px; }
+
+  /* —— Demo C: collage + top bar —— */
+  .c-bar {
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    margin-bottom:8px;
+  }
+  .c-bar .lbl { font-size:12px; font-weight:800; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  .c-add {
+    position:relative; display:inline-flex; align-items:center; gap:6px;
+    border:2px solid var(--ghost); background:transparent; color:var(--blue);
+    border-radius:999px; padding:5px 12px; font-size:12px; font-weight:800; cursor:pointer;
+  }
+  .c-add input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .c-masonry {
+    display:grid; grid-template-columns:1fr 1fr; gap:8px;
+  }
+  .c-masonry .photo { border-radius:14px; min-height:88px; }
+  .c-masonry .photo:nth-child(3n+1) { grid-row:span 2; min-height:184px; }
+  .c-masonry .photo .del {
+    opacity:0; transition:opacity .15s; background:rgba(0,0,0,.65);
+  }
+  .c-masonry .photo:hover .del, .c-masonry .photo:focus-within .del { opacity:1; }
+  .c-masonry .photo::after {
+    content:""; position:absolute; inset:0; background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.35));
+    pointer-events:none; border-radius:inherit;
+  }
+  .c-empty {
+    position:relative; grid-column:1 / -1; min-height:110px;
+  }
+  .c-empty .add-zone { min-height:110px; border-radius:14px; width:100%; }
+
+  .foot {
+    margin-top:40px; padding:14px 16px; border-radius:14px; border:2px dashed #3d5560;
+    max-width:460px; font-size:13px; line-height:1.55; color:var(--muted);
+  }
+  .foot strong { color:var(--text); }
+</style>
+</head>
+<body>
+  <h1>任務卡 · 多圖介面 · 三款 demo</h1>
+  <p class="lead">而家任務卡面冇相；詳情入面只得一個醜嘅單檔 <code>file</code> input，一次淨得一張。下面三款都係<strong>今日任務卡入面</strong>顯示多圖＋加圖，揀完話我知邊款。</p>
+  <span class="warn">Mock only · 可多選 · 未改 production</span>
+
+  <!-- ========== A ========== -->
+  <h2><span class="tag">A</span> 網格縮圖＋虛線加圖格</h2>
+  <p class="note">卡面下方 3 欄圓角方格；最後一格係虛線「＋ 加圖」。一次可揀多張，每張角有垃圾桶。</p>
+  <div class="phone">
+    <div class="ph-label">今日 · Demo A</div>
+    <div class="task" data-demo="a">
+      <button type="button" class="check" aria-hidden="true"></button>
+      <div class="task-body">
+        <div class="task-title">影相記今日訓練</div>
+        <div class="task-meta">
+          <span class="badge">連目標</span>
+          <span class="cnt-chip" data-cnt>3 張相</span>
+        </div>
+        <div class="photos a-grid" data-grid></div>
+        <p class="hint-mini">撳虛線格可一次加多張</p>
+      </div>
+      <span class="dot" aria-hidden="true"></span>
+    </div>
+  </div>
+
+  <!-- ========== B ========== -->
+  <h2><span class="tag">B</span> 大預覽橫滑＋底部加圖掣</h2>
+  <p class="note">較大圓角卡橫向滑；下面固定「加圖片」掣。冇相時顯示大虛線 hero「撳呢度加相（可多選）」。</p>
+  <div class="phone">
+    <div class="ph-label">今日 · Demo B</div>
+    <div class="task done" data-demo="b">
+      <button type="button" class="check" aria-hidden="true">✓</button>
+      <div class="task-body">
+        <div class="task-title">週末市集掃貨</div>
+        <div class="task-meta">
+          <span class="badge">每日預設</span>
+          <span class="cnt-chip" data-cnt>2 張相</span>
+        </div>
+        <div class="photos" data-strip-wrap>
+          <div class="b-strip" data-strip></div>
+          <div class="b-empty add-wrap" data-empty hidden>
+            <label class="add-zone">
+              <i class="fi fi-rr-camera"></i>
+              <span>撳呢度加相（可多選）</span>
+              <input type="file" accept="image/*" multiple />
+            </label>
+          </div>
+        </div>
+        <label class="b-add-btn">
+          <i class="fi fi-rr-picture"></i>
+          <span>加圖片</span>
+          <input type="file" accept="image/*" multiple />
+        </label>
+      </div>
+      <span class="dot" style="background:#6EBEFF" aria-hidden="true"></span>
+    </div>
+  </div>
+
+  <!-- ========== C ========== -->
+  <h2><span class="tag">C</span> Instagram 式拼貼＋頂部加圖</h2>
+  <p class="note">兩欄拼貼（高低交錯）；頂列「新增圖片」＋張數 chip；滑鼠／撳相出現深色刪除。</p>
+  <div class="phone">
+    <div class="ph-label">今日 · Demo C</div>
+    <div class="task" data-demo="c">
+      <button type="button" class="check" aria-hidden="true"></button>
+      <div class="task-body">
+        <div class="task-title">裝修進度 · 客廳</div>
+        <div class="task-meta">
+          <span class="badge">連目標</span>
+          <button type="button" class="goto">去頁面 →</button>
+        </div>
+        <div class="photos" style="margin-top:12px">
+          <div class="c-bar">
+            <span class="lbl"><i class="fi fi-rr-picture"></i> 圖片 <span class="cnt-chip" data-cnt>4 張</span></span>
+            <label class="c-add">
+              <i class="fi fi-rr-plus-small"></i> 新增圖片
+              <input type="file" accept="image/*" multiple />
+            </label>
+          </div>
+          <div class="c-masonry" data-masonry></div>
+        </div>
+      </div>
+      <span class="dot" style="background:#6FDBA8" aria-hidden="true"></span>
+    </div>
+  </div>
+
+  <div class="foot">
+    <strong>揀完 A／B／C 回覆我</strong>，之後會套用到任務卡（支援一次多張）。<br />
+    而家痛點：卡面冇相、詳情淨係裸 <code>&lt;input type="file"&gt;</code>、一次只能一張。
+  </div>
+
+<script>
+(function () {
+  // Soft gradient placeholders (no network needed)
+  const PALETTES = [
+    ['#1CB0F6','#58CC02'],
+    ['#FF8FB5','#FFC800'],
+    ['#A142F4','#1CB0F6'],
+    ['#FF9600','#FF4B4B'],
+    ['#6FDBA8','#1CB0F6'],
+    ['#CE82FF','#FF8FB5'],
+  ];
+  function placeholderDataUrl(i, label) {
+    const [a,b] = PALETTES[i % PALETTES.length];
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="${a}"/><stop offset="100%" stop-color="${b}"/>
+      </linearGradient></defs>
+      <rect width="400" height="400" fill="url(#g)"/>
+      <text x="50%" y="52%" text-anchor="middle" fill="rgba(255,255,255,.9)"
+        font-family="system-ui,sans-serif" font-size="42" font-weight="800">${label || (i+1)}</text>
+    </svg>`;
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+
+  function makeIds(n) {
+    return Array.from({ length: n }, (_, i) => ({ id: 'p' + i, src: placeholderDataUrl(i), local: false }));
+  }
+
+  const state = {
+    a: makeIds(3),
+    b: makeIds(2),
+    c: makeIds(4),
+  };
+
+  function updateCnt(root, n) {
+    const chip = root.querySelector('[data-cnt]');
+    if (chip) chip.textContent = n + ' 張相';
+  }
+
+  function onFiles(key, files, render) {
+    Array.from(files || []).forEach((f) => {
+      if (!f.type.startsWith('image/')) return;
+      const url = URL.createObjectURL(f);
+      state[key].push({ id: 'u' + Date.now() + Math.random().toString(36).slice(2,6), src: url, local: true });
+    });
+    render();
+  }
+  function bindFileOnce(input, key, render) {
+    if (!input || input.dataset.bound) return;
+    input.dataset.bound = '1';
+    input.addEventListener('change', () => {
+      const files = input.files;
+      input.value = '';
+      onFiles(key, files, render);
+    });
+  }
+  function wireFreshInput(input, key, render) {
+    if (!input) return;
+    input.addEventListener('change', () => {
+      const files = input.files;
+      input.value = '';
+      onFiles(key, files, render);
+    });
+  }
+
+  function renderA() {
+    const root = document.querySelector('[data-demo="a"]');
+    const grid = root.querySelector('[data-grid]');
+    const items = state.a;
+    updateCnt(root, items.length);
+    grid.innerHTML = items.map((p, i) => `
+      <div class="photo" data-id="${p.id}">
+        <img src="${p.src}" alt="相 ${i+1}" />
+        <button type="button" class="del" data-del="${p.id}" aria-label="刪除"><i class="fi fi-rr-trash"></i></button>
+      </div>`).join('') + `
+      <div class="add-wrap">
+        <label class="add-zone">
+          <i class="fi fi-rr-plus"></i>
+          <span>＋ 加圖</span>
+          <input type="file" accept="image/*" multiple />
+        </label>
+      </div>`;
+    wireFreshInput(grid.querySelector('input'), 'a', renderA);
+    grid.querySelectorAll('[data-del]').forEach((btn) => {
+      btn.onclick = () => {
+        state.a = state.a.filter((x) => x.id !== btn.getAttribute('data-del'));
+        renderA();
+      };
+    });
+  }
+
+  function renderB() {
+    const root = document.querySelector('[data-demo="b"]');
+    const strip = root.querySelector('[data-strip]');
+    const empty = root.querySelector('[data-empty]');
+    const items = state.b;
+    updateCnt(root, items.length);
+    if (!items.length) {
+      strip.hidden = true;
+      strip.innerHTML = '';
+      empty.hidden = false;
+    } else {
+      empty.hidden = true;
+      strip.hidden = false;
+      strip.innerHTML = items.map((p, i) => `
+        <div class="photo" data-id="${p.id}">
+          <img src="${p.src}" alt="相 ${i+1}" />
+          <button type="button" class="del" data-del="${p.id}" aria-label="刪除"><i class="fi fi-rr-trash"></i></button>
+        </div>`).join('');
+      strip.querySelectorAll('[data-del]').forEach((btn) => {
+        btn.onclick = () => {
+          state.b = state.b.filter((x) => x.id !== btn.getAttribute('data-del'));
+          renderB();
+        };
+      });
+    }
+    root.querySelectorAll('.b-add-btn input').forEach((inp) => bindFileOnce(inp, 'b', renderB));
+    const emptyInp = empty.querySelector('input');
+    if (emptyInp) wireFreshInput(emptyInp, 'b', renderB);
+  }
+
+  function renderC() {
+    const root = document.querySelector('[data-demo="c"]');
+    const masonry = root.querySelector('[data-masonry]');
+    const items = state.c;
+    updateCnt(root, items.length);
+    if (!items.length) {
+      masonry.innerHTML = `
+        <div class="c-empty add-wrap">
+          <label class="add-zone">
+            <i class="fi fi-rr-camera"></i>
+            <span>未有相 · 撳上面「新增圖片」或呢度（可多選）</span>
+            <input type="file" accept="image/*" multiple />
+          </label>
+        </div>`;
+      wireFreshInput(masonry.querySelector('input'), 'c', renderC);
+    } else {
+      masonry.innerHTML = items.map((p, i) => `
+        <div class="photo" data-id="${p.id}">
+          <img src="${p.src}" alt="相 ${i+1}" />
+          <button type="button" class="del" data-del="${p.id}" aria-label="刪除"><i class="fi fi-rr-trash"></i></button>
+        </div>`).join('');
+      masonry.querySelectorAll('[data-del]').forEach((btn) => {
+        btn.onclick = () => {
+          state.c = state.c.filter((x) => x.id !== btn.getAttribute('data-del'));
+          renderC();
+        };
+      });
+    }
+    root.querySelectorAll('.c-add input').forEach((inp) => bindFileOnce(inp, 'c', renderC));
+  }
+
+  renderA();
+  renderB();
+  renderC();
+})();
+</script>
+</body>
+</html>
