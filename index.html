@@ -2048,18 +2048,16 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
         const dot = colorId ? '<span class="theme-dot" aria-hidden="true"></span>' : '';
         const imgs = (state.assetsByTask[t.id] || []).filter(a => a.kind === 'image');
         const cntChip = imgs.length ? `<span class="cnt-chip">${imgs.length} 張相</span>` : '';
+        // View mode: only show photo grid when task already has images (no empty dashed add).
+        // Add / multi-upload lives in task detail (edit surface).
         const thumbs = imgs.map(a => `
             <div class="task-photo" data-asset="${a.id}">
               <img src="${esc(a.url)}" alt="" loading="lazy" />
               <button type="button" class="task-photo-del" data-del-card-asset="${a.id}" data-task-id="${t.id}" aria-label="刪除圖片">✕</button>
             </div>`).join('');
-        const photos = `<div class="task-photos" data-photos="${t.id}">
-            ${thumbs}
-            <button type="button" class="task-photo-add" data-add-card-img="${t.id}" aria-label="加圖片">
-              ${ico('plus')}
-              <span>加圖</span>
-            </button>
-          </div>`;
+        const photos = imgs.length
+          ? `<div class="task-photos" data-photos="${t.id}">${thumbs}</div>`
+          : '';
         return `<div class="task ${isDone ? 'done' : ''}${tint}" data-task="${t.id}" ${themeStyle(colorId)}>
           <button type="button" class="check" data-toggle="${t.id}" aria-label="完成">${checkInner}</button>
           <div class="task-body" data-detail="${t.id}">
