@@ -601,6 +601,47 @@ select {
 }
 .asset-row a { color: var(--blue); word-break: break-all; flex: 1; }
 .asset-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; }
+.task-photos {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.task-photo {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--gray-100);
+}
+.task-photo img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.task-photo-del {
+  position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
+  border-radius: 50%; border: none; padding: 0; cursor: pointer;
+  background: rgba(0,0,0,.55); color: #fff; display: grid; place-items: center;
+  font-size: 11px; backdrop-filter: blur(4px); z-index: 1;
+}
+.task-photo-del:active { transform: scale(.92); }
+.task-photo-add {
+  position: relative; aspect-ratio: 1; border-radius: 12px;
+  border: 2px dashed var(--ghost-border);
+  background: rgba(28,176,246,.06); color: var(--blue);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; cursor: pointer; font-weight: 800; font-size: 12px; text-align: center;
+  min-height: 0;
+}
+.task-photo-add:hover, .task-photo-add:focus-visible {
+  border-color: var(--blue); background: rgba(28,176,246,.12);
+}
+.task-photo-add i { font-size: 18px; }
+.cnt-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 999px;
+  background: var(--blue-soft); color: #0A7EA4;
+}
+[data-theme="dark"] .cnt-chip { background: #243840; color: #9FD4E8; }
 .boot-screen {
   position: fixed; inset: 0; z-index: 300; background: var(--bg);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
@@ -1063,6 +1104,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
 <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
   <div class="modal" id="modal"></div>
 </div>
+<input type="file" id="taskCardImageInput" accept="image/*" multiple hidden />
 <div class="toast" id="toast"></div>
 <div class="celeb" id="celeb"><div class="celeb-burst"><i class="fi fi-rr-trophy" aria-hidden="true"></i></div></div>
 
@@ -2004,6 +2046,20 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
           ? `<button type="button" class="task-goto" data-goto="${esc(t.action_page)}">去頁面 →</button>` : '';
         const checkInner = isDone ? '✓' : '';
         const dot = colorId ? '<span class="theme-dot" aria-hidden="true"></span>' : '';
+        const imgs = (state.assetsByTask[t.id] || []).filter(a => a.kind === 'image');
+        const cntChip = imgs.length ? `<span class="cnt-chip">${imgs.length} 張相</span>` : '';
+        const thumbs = imgs.map(a => `
+            <div class="task-photo" data-asset="${a.id}">
+              <img src="${esc(a.url)}" alt="" loading="lazy" />
+              <button type="button" class="task-photo-del" data-del-card-asset="${a.id}" data-task-id="${t.id}" aria-label="刪除圖片">✕</button>
+            </div>`).join('');
+        const photos = `<div class="task-photos" data-photos="${t.id}">
+            ${thumbs}
+            <button type="button" class="task-photo-add" data-add-card-img="${t.id}" aria-label="加圖片">
+              ${ico('plus')}
+              <span>加圖</span>
+            </button>
+          </div>`;
         return `<div class="task ${isDone ? 'done' : ''}${tint}" data-task="${t.id}" ${themeStyle(colorId)}>
           <button type="button" class="check" data-toggle="${t.id}" aria-label="完成">${checkInner}</button>
           <div class="task-body" data-detail="${t.id}">
@@ -2012,8 +2068,10 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
               ${t.is_default ? '<span class="badge">每日預設</span>' : ''}
               ${t.goal_id ? '<span class="badge">連目標</span>' : ''}
               ${isDone && t.completed_at ? '<span class="badge">' + esc(formatTime(t.completed_at)) + '</span>' : ''}
+              ${cntChip}
             </div>
             ${goto}
+            ${photos}
           </div>
           ${dot}
         </div>`;
@@ -2459,6 +2517,48 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     renderMilestones();
   }
 
+
+  let pendingCardUploadTaskId = null;
+
+  async function refreshTaskAssets(taskId) {
+    const { data: assets } = await sb.from('pos_task_assets').select('*').eq('task_id', taskId).order('created_at');
+    state.assetsByTask[taskId] = assets || [];
+    return state.assetsByTask[taskId];
+  }
+
+  async function uploadTaskImages(taskId, fileList) {
+    const files = Array.from(fileList || []).filter(f => f && (!f.type || f.type.startsWith('image/')));
+    if (!files.length) return false;
+    if (files.length > 1) toast('上傳緊 ' + files.length + ' 張…');
+    else toast('上傳緊…');
+    let ok = 0;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const safe = (file.name || 'img').replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `${uid()}/${taskId}/${Date.now()}-${i}-${safe}`;
+      const { error: upErr } = await sb.storage.from('pos-task-assets').upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+      if (upErr) { toast('上傳失敗：' + upErr.message); continue; }
+      const { data: pub } = sb.storage.from('pos-task-assets').getPublicUrl(path);
+      let url = pub && pub.publicUrl;
+      const { data: signed } = await sb.storage.from('pos-task-assets').createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signed && signed.signedUrl) url = signed.signedUrl;
+      const { error } = await sb.from('pos_task_assets').insert({
+        user_id: dataUid(), task_id: taskId, kind: 'image', url, label: file.name || safe
+      });
+      if (error) { toast(error.message); continue; }
+      ok++;
+    }
+    await refreshTaskAssets(taskId);
+    if (ok) sfxDone();
+    return ok > 0;
+  }
+
+  async function deleteTaskAsset(assetId, taskId) {
+    await sb.from('pos_task_assets').delete().eq('id', assetId);
+    state.assetsByTask[taskId] = (state.assetsByTask[taskId] || []).filter(a => a.id !== assetId);
+    sfxClick();
+  }
+
   /* ---------- task detail modal ---------- */
   function openModal(html) {
     document.getElementById('modal').innerHTML = html;
@@ -2473,8 +2573,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     const t = state.tasks.find(x => x.id === taskId);
     if (!t) return;
     // refresh assets
-    const { data: assets } = await sb.from('pos_task_assets').select('*').eq('task_id', taskId).order('created_at');
-    state.assetsByTask[taskId] = assets || [];
+    const assets = await refreshTaskAssets(taskId);
     const assetHtml = (assets || []).map(a => {
       if (a.kind === 'image') {
         return `<div class="asset-row" data-asset="${a.id}">
@@ -2508,8 +2607,8 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
         </div>
         <button type="button" class="btn btn-secondary btn-sm btn-block" id="tdAddLink" style="margin-top:8px">＋ 加連結</button>
       </div>
-      <div class="field"><label>上傳圖片</label>
-        <input id="tdImage" type="file" accept="image/*" />
+      <div class="field"><label>上傳圖片（可多選）</label>
+        <input id="tdImage" type="file" accept="image/*" multiple />
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" id="tdClose">關閉</button>
@@ -2540,29 +2639,17 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       openTaskDetail(taskId);
     };
     document.getElementById('tdImage').onchange = async (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      const path = `${uid()}/${taskId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-      const { error: upErr } = await sb.storage.from('pos-task-assets').upload(path, file, { upsert: true, contentType: file.type });
-      if (upErr) return toast('上傳失敗：' + upErr.message);
-      const { data: pub } = sb.storage.from('pos-task-assets').getPublicUrl(path);
-      // bucket may be private — use signed URL
-      let url = pub && pub.publicUrl;
-      const { data: signed } = await sb.storage.from('pos-task-assets').createSignedUrl(path, 60 * 60 * 24 * 365);
-      if (signed && signed.signedUrl) url = signed.signedUrl;
-      const { error } = await sb.from('pos_task_assets').insert({
-        user_id: dataUid(), task_id: taskId, kind: 'image', url, label: file.name
-      });
-      if (error) return toast(error.message);
-      sfxDone();
-      openTaskDetail(taskId);
+      const files = e.target.files;
+      if (!files || !files.length) return;
+      const ok = await uploadTaskImages(taskId, files);
+      e.target.value = '';
+      if (ok) openTaskDetail(taskId);
     };
     document.getElementById('tdAssets').onclick = async (ev) => {
       const btn = ev.target.closest('[data-del-asset]');
       if (!btn) return;
       const id = btn.getAttribute('data-del-asset');
-      await sb.from('pos_task_assets').delete().eq('id', id);
-      sfxClick();
+      await deleteTaskAsset(id, taskId);
       openTaskDetail(taskId);
     };
   }
@@ -2964,7 +3051,28 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     });
 
     // delegated
-    document.getElementById('todayTaskList').addEventListener('click', (e) => {
+    document.getElementById('todayTaskList').addEventListener('click', async (e) => {
+      const photosZone = e.target.closest('.task-photos');
+      if (photosZone) {
+        e.stopPropagation();
+        const delBtn = e.target.closest('[data-del-card-asset]');
+        if (delBtn) {
+          const id = delBtn.getAttribute('data-del-card-asset');
+          const tid = delBtn.getAttribute('data-task-id');
+          await deleteTaskAsset(id, tid);
+          renderToday();
+          return;
+        }
+        const addBtn = e.target.closest('[data-add-card-img]');
+        if (addBtn) {
+          sfxClick();
+          pendingCardUploadTaskId = addBtn.getAttribute('data-add-card-img');
+          const inp = document.getElementById('taskCardImageInput');
+          if (inp) { inp.value = ''; inp.click(); }
+          return;
+        }
+        return;
+      }
       const goto = e.target.closest('[data-goto]');
       if (goto) {
         e.stopPropagation();
@@ -2980,6 +3088,19 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       const detail = e.target.closest('[data-detail]');
       if (detail) { sfxClick(); openTaskDetail(detail.getAttribute('data-detail')); }
     });
+
+    const cardImgInput = document.getElementById('taskCardImageInput');
+    if (cardImgInput) {
+      cardImgInput.addEventListener('change', async (e) => {
+        const tid = pendingCardUploadTaskId;
+        pendingCardUploadTaskId = null;
+        const files = e.target.files;
+        e.target.value = '';
+        if (!tid || !files || !files.length) return;
+        const ok = await uploadTaskImages(tid, files);
+        if (ok) renderToday();
+      });
+    }
 
     document.getElementById('inboxList').addEventListener('click', async (e) => {
       const toToday = e.target.closest('[data-cap-today]');
