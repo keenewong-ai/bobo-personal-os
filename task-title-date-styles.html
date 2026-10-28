@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>今日任務卡 · 標題＋日期 · 五款 demo</title>
+<link rel="stylesheet" href="vendor/uicons/css/uicons-regular-rounded.css" />
+<style>
+  :root {
+    --bg:#131f24; --panel:#0f171b; --text:#E8EEF1; --muted:#8FA3AD;
+    --card:#1a2228; --border:#2c3c44; --blue:#1CB0F6; --green:#58CC02;
+    --ghost:#3d5560; --stripe:rgba(255,255,255,.04);
+    --accent-pink:#FF8FB5; --accent-blue:#6EBEFF; --accent-mint:#6FDBA8;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:"Noto Sans TC","PingFang HK",system-ui,-apple-system,sans-serif;
+    background:var(--bg); color:var(--text); padding:20px 16px 72px;
+  }
+  h1 { font-size:20px; margin:0 0 6px; font-weight:900; }
+  .lead { color:var(--muted); font-size:13px; margin:0 0 8px; line-height:1.55; max-width:480px; }
+  .warn {
+    display:inline-block; font-size:11px; font-weight:800; letter-spacing:.02em;
+    padding:4px 10px; border-radius:999px; background:#243840; color:#9FD4E8; margin-bottom:18px;
+  }
+  h2 { font-size:14px; margin:36px 0 6px; display:flex; align-items:center; gap:8px; font-weight:800; }
+  .tag { font-size:11px; font-weight:800; padding:3px 8px; border-radius:999px; background:#243840; color:#9FD4E8; }
+  .note { font-size:12px; color:var(--muted); margin:0 0 12px; max-width:480px; line-height:1.5; }
+  .phone {
+    width:100%; max-width:360px; background:var(--panel);
+    border:2px solid var(--border); border-radius:20px; padding:14px 12px 16px;
+  }
+  .ph-label {
+    font-size:11px; font-weight:800; color:var(--muted); letter-spacing:.04em;
+    text-transform:uppercase; margin:0 0 10px;
+  }
+
+  /* —— shared stage task card —— */
+  .task {
+    display:flex; gap:12px; align-items:flex-start;
+    padding:14px 14px 12px; border-radius:16px; border:2px solid var(--border);
+    background-color:var(--card);
+    background-image:repeating-linear-gradient(-45deg, transparent 0 14px, var(--stripe) 14px 28px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+    position:relative; margin-bottom:10px;
+  }
+  .task:last-child { margin-bottom:0; }
+  .task .check {
+    width:28px; height:28px; border-radius:50%; border:3px solid #8aa0aa; flex-shrink:0;
+    display:grid; place-items:center; font-weight:900; margin-top:2px; background:transparent; color:transparent;
+    font-size:13px; padding:0; cursor:default;
+  }
+  .task.done .check { background:var(--green); border-color:var(--green); color:#fff; }
+  .task.done .task-title { text-decoration:line-through; color:var(--muted); }
+  .task-body { flex:1; min-width:0; }
+  .task-title { font-size:15px; font-weight:800; line-height:1.35; word-break:break-word; }
+  .task-meta { font-size:12px; color:var(--muted); margin-top:6px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .badge {
+    font-size:11px; font-weight:800; padding:2px 8px; border-radius:999px;
+    background:#243038; color:var(--muted);
+  }
+  .dot {
+    width:10px; height:10px; border-radius:50%; margin-top:8px; flex-shrink:0; background:var(--accent-pink);
+  }
+
+  /* —— mode segment (shared) —— */
+  .mode-seg {
+    display:inline-flex; background:rgba(255,255,255,.06); border:2px solid rgba(255,255,255,.08);
+    border-radius:999px; padding:3px; gap:2px; flex-shrink:0;
+  }
+  .mode-seg button {
+    border:0; background:transparent; color:var(--muted); font-size:12px; font-weight:800;
+    padding:6px 10px; border-radius:999px; cursor:default; white-space:nowrap; font-family:inherit;
+  }
+  .mode-seg button.active {
+    background:rgba(255,255,255,.12); color:#fff;
+  }
+
+  .date-chip {
+    display:inline-flex; align-items:center; gap:4px;
+    font-size:11px; font-weight:800; padding:3px 10px; border-radius:999px;
+    background:#243840; color:#9FD4E8; white-space:nowrap; flex-shrink:0;
+  }
+  .date-muted {
+    font-size:12px; font-weight:700; color:var(--muted); white-space:nowrap; line-height:1.3;
+  }
+  .hdr-title {
+    font-size:13px; font-weight:800; color:var(--muted); letter-spacing:.04em;
+    line-height:1.35;
+  }
+
+  /* ========== A: title clamp · date never squeezed into wrap ========== */
+  .a-row {
+    display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px;
+  }
+  .a-left { flex:1; min-width:0; }
+  .a-left .hdr-title {
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+    margin:0 0 4px;
+  }
+  .a-left .date-muted { display:block; }
+
+  /* ========== B: stacked block · date always own row ========== */
+  .b-block { margin-bottom:12px; }
+  .b-top {
+    display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:6px;
+  }
+  .b-top .hdr-title {
+    flex:1; min-width:0; margin:0;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .b-date-row { margin:0; }
+
+  /* ========== C: side-by-side title + date pill ========== */
+  .c-row {
+    display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:10px;
+  }
+  .c-title-wrap { flex:1; min-width:0; }
+  .c-title-wrap .hdr-title {
+    margin:0;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .c-tools { display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0; }
+
+  /* ========== D: title only · date top-right badge on card ========== */
+  .d-row {
+    display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;
+  }
+  .d-row .hdr-title { margin:0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .task.d-card { position:relative; padding-top:18px; }
+  .task.d-card .date-badge {
+    position:absolute; top:8px; right:12px; z-index:1;
+    font-size:10px; font-weight:800; padding:2px 8px; border-radius:999px;
+    background:#243840; color:#9FD4E8; white-space:nowrap; max-width:calc(100% - 56px);
+    overflow:hidden; text-overflow:ellipsis;
+  }
+
+  /* ========== E: compact meta row under title ========== */
+  .e-block { margin-bottom:12px; }
+  .e-block .hdr-title {
+    margin:0 0 6px;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .e-meta {
+    display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;
+    min-height:28px;
+  }
+  .e-meta .date-muted { white-space:normal; } /* allow soft wrap only if extreme */
+
+  /* task title clamp helpers used in samples */
+  .clamp2 {
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+
+  .foot {
+    margin-top:40px; padding:14px 16px; border-radius:14px; border:2px dashed #3d5560;
+    max-width:480px; font-size:13px; line-height:1.55; color:var(--muted);
+  }
+  .foot strong { color:var(--text); }
+
+  code { font-size:12px; background:#243038; padding:1px 6px; border-radius:6px; }
+</style>
+</head>
+<body>
+  <h1>今日任務卡 · 標題＋日期 · 五款 demo</h1>
+  <p class="lead">而家「今日任務卡」同日期擠喺同一行，再加篩選掣，窄位就會斷兩行、顯示唔齊。下面五款都係<strong>標題＋日期</strong>排法（模擬長標題／長日期），揀完話我知邊款，先至改 production。</p>
+  <span class="warn">Mock only · 未改 index · 長文案刻意逼 wrap</span>
+
+  <!-- ========== A ========== -->
+  <h2><span class="tag">A</span> 標題 clamp · 日期永遠獨立一行</h2>
+  <p class="note">標題最多兩行 ellipsis；日期用細字 muted 永遠放標題下面單行，唔會同標題搶同一行寬度。篩選掣靠右。</p>
+  <div class="phone">
+    <div class="ph-label">今日 · Demo A</div>
+    <div class="a-row">
+      <div class="a-left">
+        <div class="hdr-title">今日任務卡 · 個人作業同每週回顧清單總覽</div>
+        <span class="date-muted">2026年10月28日（星期三）</span>
+      </div>
+      <div class="mode-seg" aria-hidden="true">
+        <button type="button" class="active">全部</button>
+        <button type="button">未做先</button>
+        <button type="button">藏完成</button>
+      </div>
+    </div>
+    <div class="task">
+      <button type="button" class="check" aria-hidden="true"></button>
+      <div class="task-body">
+        <div class="task-title clamp2">同設計師對齊下個 sprint 嘅視覺稿同埋互動流程註解</div>
+        <div class="task-meta"><span class="badge">連目標</span></div>
+      </div>
+      <span class="dot" aria-hidden="true"></span>
+    </div>
+    <div class="task done">
+      <button type="button" class="check" aria-hidden="true">✓</button>
+      <div class="task-body">
+        <div class="task-title clamp2">每日回顧：完成、卡住、聽日第一件</div>
+        <div class="task-meta"><span class="badge">每日預設</span><span class="badge">下午 6:12</span></div>
+      </div>
+      <span class="dot" style="background:var(--accent-blue)" aria-hidden="true"></span>
+    </div>
+  </div>
+
+  <!-- ========== B ========== -->
+  <h2><span class="tag">B</span> 上下堆疊 · 日期成行全顯示</h2>
+  <p class="note">第一行：標題（最多兩行）＋篩選；第二行：日期完整顯示、唔截斷。空間最鬆，窄機都睇得晒。</p>
+  <div class="phone">
+    <div class="ph-label">今日 · Demo B</div>
+    <div class="b-block">
+      <div class="b-top">
+        <div class="hdr-title">今日任務卡 · 個人作業同每週回顧清單總覽</div>
+        <div class="mode-seg" aria-hidden="true">
+          <button type="button" class="active">全部</button>
+          <button type="button">未做先</button>
+          <button type="button">藏完成</button>
+        </div>
+      </div>
+      <p class="b-date-row date-muted">📅 2026年10月28日（星期三）</p>
+    </div>
+    <div class="task">
+      <button type="button" class="check" aria-hidden="true"></button>
+      <div class="task-body">
+        <div class="task-title">準備週會簡報：進度、風險、需要拍板嘅三件事</div>
+        <div class="task-meta"><span class="badge">連目標</span></div>
+      </div>
+      <span class="dot" style="background:var(--accent-mint)" aria-hidden="true"></span>
+    </div>
+  </div>
+
+  <!-- ========== C ========== -->
+  <h2><span class="tag">C</span> 左右分欄 · 日期 pill 靠右</h2>
+  <p class="note">左：標題兩行 clamp；右欄垂直疊「日期 pill」同篩選掣。日期永遠單行 chip，唔會同標題扭埋一齊。</p>
+  <div class="phone">
+    <div class="ph-label">今日 · Demo C</div>
+    <div class="c-row">
+      <div class="c-title-wrap">
+        <div class="hdr-title">今日任務卡 · 個人作業同每週回顧清單總覽</div>
+      </div>
+      <div class="c-tools">
+        <span class="date-chip">10月28日 · 週三</span>
+        <div class="mode-seg" aria-hidden="true">
+          <button type="button" class="active">全部</button>
+          <button type="button">未做先</button>
+          <button type="button">藏完成</button>
+        </div>
+      </div>
+    </div>
+    <div class="task">
+      <button type="button" class="check" aria-hidden="true"></button>
+      <div class="task-body">
+        <div class="task-title clamp2">整理 Notion：專案資料夾、模板同權限清單</div>
+        <div class="task-meta"><span class="badge">連目標</span></div>
+      </div>
+      <span class="dot" aria-hidden="true"></span>
+    </div>
+  </div>
+
+  <!-- ========== D ========== -->
+  <h2><span class="tag">D</span> 標題列淨標題 · 日期做卡角 badge</h2>
+  <p class="note">頂列只留「今日任務卡」＋篩選；日期改做每張任務卡右上角小 chip（示範長日期截斷）。適合想減頂部雜訊。</p>
+  <div class="phone">
+    <div class="ph-label">今日 · Demo D</div>
+    <div class="d-row">
+      <div class="hdr-title">今日任務卡</div>
+      <div class="mode-seg" aria-hidden="true">
+        <button type="button" class="active">全部</button>
+        <button type="button">未做先</button>
+        <button type="button">藏完成</button>
+      </div>
+    </div>
+    <div class="task d-card">
+      <span class="date-badge">2026年10月28日（星期三）</span>
+      <button type="button" class="check" aria-hidden="true"></button>
+      <div class="task-body">
+        <div class="task-title clamp2">同設計師對齊下個 sprint 嘅視覺稿同埋互動流程註解</div>
+        <div class="task-meta"><span class="badge">連目標</span></div>
+      </div>
+      <span class="dot" aria-hidden="true"></span>
+    </div>
+    <div class="task d-card done">
+      <span class="date-badge">2026年10月28日（星期三）</span>
+      <button type="button" class="check" aria-hidden="true">✓</button>
+      <div class="task-body">
+        <div class="task-title clamp2">每日回顧：完成、卡住、聽日第一件</div>
+        <div class="task-meta"><span class="badge">每日預設</span></div>
+      </div>
+      <span class="dot" style="background:var(--accent-blue)" aria-hidden="true"></span>
+    </div>
+  </div>
+
+  <!-- ========== E ========== -->
+  <h2><span class="tag">E</span> 標題下 compact meta 列</h2>
+  <p class="note">標題最多兩行；下面一條 meta 列：左日期、右篩選。行高／gap 清楚，兩行標題唔會同日期撞埋。</p>
+  <div class="phone">
+    <div class="ph-label">今日 · Demo E</div>
+    <div class="e-block">
+      <div class="hdr-title">今日任務卡 · 個人作業同每週回顧清單總覽</div>
+      <div class="e-meta">
+        <span class="date-muted">2026年10月28日（星期三）</span>
+        <div class="mode-seg" aria-hidden="true">
+          <button type="button" class="active">全部</button>
+          <button type="button">未做先</button>
+          <button type="button">藏完成</button>
+        </div>
+      </div>
+    </div>
+    <div class="task">
+      <button type="button" class="check" aria-hidden="true"></button>
+      <div class="task-body">
+        <div class="task-title clamp2">準備週會簡報：進度、風險、需要拍板嘅三件事同埋附件連結</div>
+        <div class="task-meta"><span class="badge">連目標</span><span class="badge">2 張相</span></div>
+      </div>
+      <span class="dot" style="background:var(--accent-mint)" aria-hidden="true"></span>
+    </div>
+  </div>
+
+  <div class="foot">
+    <strong>揀完 A／B／C／D／E 回覆我</strong>，之後先套用到今日頁標題列（唔改任務卡內容除非你揀 D）。<br />
+    而家痛點：<code>今日任務卡</code> 同 <code>todayDateLabel</code> 同篩選掣擠一行，窄位斷兩行、顯示唔齊。
+  </div>
+</body>
+</html>
