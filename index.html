@@ -691,9 +691,20 @@ i.fi {
 .celeb-burst .fi { font-size: 64px; color: var(--orange); }
 .back-ico { font-size: 16px; margin-right: 4px; }
 
-/* Today task list display mode */
-.today-title-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin: 4px 0 10px; }
-.today-title-row .section-title { margin:0; flex:1; min-width:120px; }
+/* Today task list display mode — Style A: title clamp, date own muted row */
+.today-title-row { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin: 4px 0 10px; }
+.today-title-left { flex:1; min-width:0; }
+.today-heading {
+  font-size: 13px; font-weight: 800; color: var(--gray-600); letter-spacing: .04em;
+  line-height: 1.35; margin: 0 0 4px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.today-date-muted {
+  display: block; font-size: 12px; font-weight: 700; color: var(--gray-600);
+  white-space: nowrap; line-height: 1.3;
+}
+html.dark .today-heading,
+html.dark .today-date-muted { color: var(--gray-600); }
 .today-mode-seg {
   display:inline-flex; background: var(--gray-50); border: 2px solid var(--gray-100);
   border-radius: 999px; padding: 3px; gap: 2px; flex-shrink:0;
@@ -874,9 +885,9 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       </div>
     </div>
     <div class="today-title-row">
-      <div class="section-title">
-        <span>今日任務卡</span>
-        <span id="todayDateLabel"></span>
+      <div class="today-title-left">
+        <div class="today-heading">今日任務卡</div>
+        <span class="today-date-muted" id="todayDateLabel"></span>
       </div>
       <div class="today-mode-seg" id="todayModeSeg" role="group" aria-label="今日任務顯示">
         <button type="button" data-today-mode="all" title="全部">全部</button>
@@ -1551,6 +1562,13 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       return new Intl.DateTimeFormat('zh-HK', { timeZone: TZ, year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' }).format(d);
     } catch { return iso || ''; }
   }
+  /** Short date for today header: e.g. 10月28日 週三 (no year) */
+  function formatShortDisplayDate(iso) {
+    try {
+      const d = iso ? new Date(iso + 'T12:00:00') : new Date();
+      return new Intl.DateTimeFormat('zh-HK', { timeZone: TZ, month: 'short', day: 'numeric', weekday: 'short' }).format(d);
+    } catch { return iso || ''; }
+  }
   function formatTime(ts) {
     if (!ts) return '';
     return new Intl.DateTimeFormat('zh-HK', { timeZone: TZ, hour: '2-digit', minute: '2-digit' }).format(new Date(ts));
@@ -2021,7 +2039,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
 
   function renderToday() {
     const day = todayStr();
-    document.getElementById('todayDateLabel').textContent = formatDisplayDate(day);
+    document.getElementById('todayDateLabel').textContent = formatShortDisplayDate(day);
     const tasks = state.tasks.filter(t => t.status !== 'rolled');
     const done = tasks.filter(t => t.status === 'done').length;
     const open = tasks.filter(t => t.status === 'open').length;
