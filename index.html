@@ -2045,22 +2045,33 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     const gAcademy = goalByKind('academy');
 
     const { data: existing } = await sb.from('pos_tasks').select('*').eq('user_id', dataUid()).eq('day', day);
-    const list = existing || [];
+    let list = existing || [];
     const has = (page) => list.some(t => t.action_page === page && t.status !== 'rolled');
+
+    // Backfill: daily presets for today without due_date → set to today (show on calendar 當日任務).
+    const needDue = list.filter(t => t.is_default && t.status !== 'rolled' && !t.due_date);
+    if (needDue.length) {
+      await Promise.all(needDue.map(t =>
+        sb.from('pos_tasks').update({ due_date: day }).eq('id', t.id)
+      ));
+      needDue.forEach(t => { t.due_date = day; });
+    }
 
     const inserts = [];
     if (gTerms && !has('ai_terms')) {
       inserts.push({
         user_id: dataUid(), day, title: '每日五條 AI Terms', detail: '去頁面學今日 5 個詞，學完會自動勾任務。',
         status: 'open', goal_id: gTerms.id, action_page: 'ai_terms', is_default: true, sort_order: 1,
-        color: gTerms.color || KIND_DEFAULT_COLOR.ai_terms || null
+        color: gTerms.color || KIND_DEFAULT_COLOR.ai_terms || null,
+        due_date: day
       });
     }
     if (gReview && !has('daily_review')) {
       inserts.push({
         user_id: dataUid(), day, title: '每日回顧', detail: '收工 5 分鐘：完成、卡住、聽日第一件。',
         status: 'open', goal_id: gReview.id, action_page: 'daily_review', is_default: true, sort_order: 2,
-        color: gReview.color || KIND_DEFAULT_COLOR.daily_review || null
+        color: gReview.color || KIND_DEFAULT_COLOR.daily_review || null,
+        due_date: day
       });
     }
 
@@ -2076,7 +2087,8 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
           detail: '完成後會自動更新課程目標進度。',
           status: 'open', goal_id: gAcademy.id, goal_step_id: next.id,
           action_page: 'academy', is_default: true, sort_order: 3,
-          color: gAcademy.color || KIND_DEFAULT_COLOR.academy || null
+          color: gAcademy.color || KIND_DEFAULT_COLOR.academy || null,
+          due_date: day
         });
       }
     }
@@ -2139,7 +2151,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     return { start, end };
   }
 
-  /** Load non-default tasks that have due_date in the visible calendar month. */
+  /** Load tasks that have due_date in the visible calendar month (includes daily presets). */
   async function refreshDueTasksForCalMonth() {
     const uidv = dataUid();
     if (!uidv) { state.dueByDate = {}; return; }
@@ -2147,7 +2159,6 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     const { data, error } = await sb.from('pos_tasks')
       .select('id,title,status,due_date,day,is_default,color,goal_id')
       .eq('user_id', uidv)
-      .eq('is_default', false)
       .not('due_date', 'is', null)
       .gte('due_date', start)
       .lte('due_date', end)
@@ -2165,7 +2176,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     });
     // Also merge today's in-memory tasks (just saved) so UI is instant
     (state.tasks || []).forEach(t => {
-      if (t.is_default || !t.due_date || t.status === 'rolled') return;
+      if (!t.due_date || t.status === 'rolled') return;
       if (t.due_date < start || t.due_date > end) return;
       const list = map[t.due_date] || (map[t.due_date] = []);
       if (!list.some(x => x.id === t.id)) list.push({
@@ -2183,7 +2194,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       map[k] = (map[k] || []).filter(x => x.id !== task.id);
       if (!map[k].length) delete map[k];
     });
-    if (task && !task.is_default && task.due_date && task.status !== 'rolled') {
+    if (task && task.due_date && task.status !== 'rolled') {
       const { start, end } = calMonthRangeIso();
       if (task.due_date >= start && task.due_date <= end) {
         const list = map[task.due_date] || (map[task.due_date] = []);
@@ -2241,7 +2252,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
             <div class="task-title">${esc(t.title)}</div>
             <div class="task-meta">
               ${t.is_default ? '<span class="badge">每日預設</span>' : ''}
-              ${!t.is_default ? dueBadgeHtml(t.due_date) : ''}
+              ${dueBadgeHtml(t.due_date)}
               ${t.goal_id ? '<span class="badge">連目標</span>' : ''}
               ${isDone && t.completed_at ? '<span class="badge">' + esc(formatTime(t.completed_at)) + '</span>' : ''}
               ${cntChip}
@@ -2765,7 +2776,8 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
           action_page: 'academy',
           is_default: false,
           sort_order: 35,
-          color: g.color || KIND_DEFAULT_COLOR.academy || null
+          color: g.color || KIND_DEFAULT_COLOR.academy || null,
+          due_date: day
         };
         const { data, error } = await sb.from('pos_tasks').insert(row).select().single();
         if (error) { toast('加今日任務失敗：' + error.message); return false; }
@@ -2929,13 +2941,13 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       <h2>任務詳情</h2>
       <div class="field"><label>標題</label><input id="tdTitle" value="${esc(t.title)}" /></div>
       <div class="field"><label>說明</label><textarea id="tdDetail">${esc(t.detail || '')}</textarea></div>
-      ${t.is_default ? '' : `<div class="field"><label>日期</label>
+      <div class="field"><label>日期</label>
         <div class="due-row">
           <input type="date" id="tdDue" value="${esc(t.due_date || '')}" />
           <button type="button" class="btn btn-secondary btn-sm due-clear" id="tdDueClear">清除</button>
         </div>
         <p class="hint">可改或清除；留空＝無日期</p>
-      </div>`}
+      </div>
       <div class="field"><label>卡片顏色</label>
         ${colorSwatchesHTML(curColor, 'tdColor')}
         <p class="hint">有連目標時預設跟目標色，可覆寫</p>
@@ -2973,14 +2985,12 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
       const detail = document.getElementById('tdDetail').value.trim();
       const color = selectedColorFrom('#modal [data-color-group="tdColor"]');
       const patch = { title, detail, color };
-      if (!t.is_default) {
-        const dueEl = document.getElementById('tdDue');
-        patch.due_date = dueEl ? normalizeDueInput(dueEl.value) : null;
-      }
+      const dueEl = document.getElementById('tdDue');
+      patch.due_date = dueEl ? normalizeDueInput(dueEl.value) : null;
       const { error } = await sb.from('pos_tasks').update(patch).eq('id', taskId);
       if (error) return toast(error.message);
       t.title = title; t.detail = detail; t.color = color;
-      if (!t.is_default) t.due_date = patch.due_date;
+      t.due_date = patch.due_date;
       patchDueCache(t);
       sfxDone(); closeModal(); renderToday();
       if (state.selectedDay) renderDayDetail(state.selectedDay);
