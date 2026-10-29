@@ -2705,6 +2705,70 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     renderReview();
   }
 
+  /**
+   * Mirror Academy lesson toggle onto today's task card + pos_completions (calendar).
+   * Completing a step → find/create today's task linked by goal_step_id, mark done
+   * (DB trigger writes completion + streak). Avoids duplicate tasks for the same step.
+   */
+  async function syncAcademyLessonToTodayTask(step, done) {
+    const g = goalByKind('academy');
+    if (!g || !step) return;
+    const day = todayStr();
+    const uidv = dataUid();
+    const title = '讀 Claude Academy：' + (step.title || ('第 ' + step.step_index + ' 課'));
+
+    let t = (state.tasks || []).find(x =>
+      x.goal_step_id === step.id && x.day === day && x.status !== 'rolled'
+    );
+    if (!t) {
+      const { data: rows } = await sb.from('pos_tasks').select('*')
+        .eq('user_id', uidv).eq('day', day).eq('goal_step_id', step.id)
+        .neq('status', 'rolled').order('sort_order').limit(1);
+      t = (rows && rows[0]) || null;
+      if (t && !(state.tasks || []).some(x => x.id === t.id)) state.tasks.push(t);
+    }
+
+    if (done) {
+      const now = new Date().toISOString();
+      if (t) {
+        if (t.status !== 'done') {
+          const { error } = await sb.from('pos_tasks').update({
+            status: 'done', completed_at: now
+          }).eq('id', t.id);
+          if (error) { toast('任務更新失敗：' + error.message); return; }
+          t.status = 'done'; t.completed_at = now;
+          await refreshAfterTaskDone();
+        }
+      } else {
+        const row = {
+          user_id: uidv,
+          day,
+          title,
+          detail: '由課程頁標記完成。',
+          status: 'done',
+          completed_at: now,
+          goal_id: g.id,
+          goal_step_id: step.id,
+          action_page: 'academy',
+          is_default: false,
+          sort_order: 35,
+          color: g.color || KIND_DEFAULT_COLOR.academy || null
+        };
+        const { data, error } = await sb.from('pos_tasks').insert(row).select().single();
+        if (error) { toast('加今日任務失敗：' + error.message); return; }
+        state.tasks.push(data);
+        await refreshAfterTaskDone();
+      }
+    } else if (t && t.status === 'done') {
+      // Un-complete lesson → reopen linked today task (same as unchecking a card).
+      const { error } = await sb.from('pos_tasks').update({
+        status: 'open', completed_at: null
+      }).eq('id', t.id);
+      if (error) { toast('任務更新失敗：' + error.message); return; }
+      t.status = 'open'; t.completed_at = null;
+    }
+  }
+
   async function toggleStep(stepId) {
     const g = goalByKind('academy');
     if (!g) return;
@@ -2721,10 +2785,14 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     // progress recalc via trigger
     const { data: goals } = await sb.from('pos_goals').select('*').eq('user_id', dataUid()).eq('archived', false).order('sort_order');
     state.goals = goals || [];
+    await syncAcademyLessonToTodayTask(step, done);
     if (done) { sfxDone(); celebrate(); } else sfxClick();
     renderCourse();
     renderGoals();
     renderMilestones();
+    renderToday();
+    if (state.selectedDay) renderDayDetail(state.selectedDay);
+    renderCalendar();
   }
 
 
