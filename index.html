@@ -1295,7 +1295,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
    * {
    *   day: 'YYYY-MM-DD',          // Asia/Taipei calendar day
    *   syncedAt: ISO string|null,
-   *   source: 'mock'|'google'|…,
+   *   source: 'google'|'local'|…,
    *   events: [{
    *     id, title, allDay?,
    *     start: ISO or 'YYYY-MM-DD' (all-day),
@@ -1305,15 +1305,6 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
    *   }]
    * }
    */
-
-  function mockGcalEventsFor(day) {
-    return [
-      { id: 'mock-standup', title: '產品 standup', allDay: false, start: day + 'T09:00:00+08:00', end: day + 'T09:45:00+08:00', meet: true, color: 'blue' },
-      { id: 'mock-offsite', title: 'Team offsite 準備', allDay: true, start: day, end: day, location: '辦公室', color: 'purple' },
-      { id: 'mock-11', title: '1:1 同 Design', allDay: false, start: day + 'T14:30:00+08:00', end: day + 'T15:30:00+08:00', meet: true, location: '3F 會議室 B', color: 'blue' },
-      { id: 'mock-gym', title: '健身 · 力量訓練', allDay: false, start: day + 'T19:00:00+08:00', end: day + 'T20:00:00+08:00', location: 'Anytime Fitness', color: 'blue' }
-    ];
-  }
 
   function loadGcalStore() {
     try {
@@ -1330,7 +1321,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     const payload = {
       day: data.day || todayStr(),
       syncedAt: data.syncedAt != null ? data.syncedAt : null,
-      source: data.source || (data.syncedAt ? 'google' : 'mock'),
+      source: data.source || (data.syncedAt ? 'google' : 'local'),
       events: Array.isArray(data.events) ? data.events : []
     };
     localStorage.setItem(GCAL_KEY, JSON.stringify(payload));
@@ -1346,7 +1337,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     return {
       day,
       syncedAt: row.synced_at || null,
-      source: row.source || (row.synced_at ? 'google' : 'mock'),
+      source: row.source || (row.synced_at ? 'google' : 'local'),
       events: Array.isArray(row.events) ? row.events : []
     };
   }
@@ -1354,7 +1345,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   /**
    * Prefer Supabase pos_gcal_days for today.
    * - Row found → mirror to localStorage (even if events=[] — do NOT keep mock over google empty day).
-   * - No row → leave local alone; ensureGcalDay may seed mock for UI review.
+   * - No row → leave local alone; ensureGcalDay uses empty list (no demo data).
    */
   async function hydrateGcalFromServer() {
     const day = todayStr();
@@ -1458,12 +1449,19 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   function ensureGcalDay() {
     const day = todayStr();
     let store = loadGcalStore();
+    // Drop legacy demo/mock cache so empty days never show sample events.
     if (store && store.day === day) {
+      const isMock = store.source === 'mock'
+        || (Array.isArray(store.events) && store.events.some(e => String(e && e.id || '').startsWith('mock-')));
+      if (isMock) {
+        store = saveGcalStore({ day, syncedAt: null, source: 'local', events: [] });
+        return store;
+      }
       state.gcalDay = store;
       return store;
     }
-    // No today cache (and hydrate found nothing): seed mock for demo until first google sync.
-    store = saveGcalStore({ day, syncedAt: null, source: 'mock', events: mockGcalEventsFor(day) });
+    // No today cache: empty list until real Google sync (no demo/sample data).
+    store = saveGcalStore({ day, syncedAt: null, source: 'local', events: [] });
     return store;
   }
 
@@ -1529,15 +1527,13 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     if (syncLabel) {
       if (store.source === 'google' || store.syncedAt) {
         syncLabel.textContent = store.syncedAt ? ('已同步 ' + formatTime(store.syncedAt)) : '已同步';
-      } else if (store.source === 'mock') {
-        syncLabel.textContent = '示範資料';
       } else {
         syncLabel.textContent = '';
       }
     }
     if (!events.length) {
       list.className = '';
-      list.innerHTML = '<p class="gcal-empty">今日未有行程</p>';
+      list.innerHTML = '<p class="gcal-empty">今天沒有 Google 行程</p>';
       return;
     }
     list.className = 'gcal-rail';
