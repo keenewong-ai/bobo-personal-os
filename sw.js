@@ -1,8 +1,10 @@
 /* BoBo Personal OS — minimal offline shell SW */
-const CACHE = 'bobo-pos-shell-v33';
+importScripts('./app-version.js');
+const CACHE = 'bobo-pos-shell-v' + APP_SHELL_VERSION;
 const PRECACHE = [
   './',
   './index.html',
+  './app-version.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

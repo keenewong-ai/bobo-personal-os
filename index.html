@@ -84,7 +84,11 @@ textarea { resize: vertical; min-height: 72px; }
   background: linear-gradient(135deg, var(--green), #89E219);
   display: grid; place-items: center; font-size: 20px; box-shadow: var(--shadow);
 }
-.brand h1 { font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
+.brand h1 { font-size: 17px; font-weight: 800; letter-spacing: -.02em; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.brand h1 .app-ver {
+  font-size: 11px; font-weight: 700; color: var(--gray-400);
+  letter-spacing: 0; line-height: 1;
+}
 .brand p { font-size: 12px; color: var(--gray-600); }
 .streak-pill {
   display: flex; align-items: center; gap: 6px; background: var(--orange-soft);
@@ -883,7 +887,7 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
   <div class="brand">
     <div class="brand-logo"><i class="fi fi-rr-sunrise" aria-hidden="true"></i></div>
     <div>
-      <h1>BoBo OS</h1>
+      <h1>BoBo OS <span class="app-ver" id="appVer" aria-label="app version"></span></h1>
       <p>睇到 · 做到 · 記得</p>
     </div>
   </div>
@@ -1161,7 +1165,14 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
 <div class="celeb" id="celeb"><div class="celeb-burst"><i class="fi fi-rr-trophy" aria-hidden="true"></i></div></div>
 
 
+<script src="./app-version.js"></script>
 <script>
+  /* Header version from app-version.js (same number as SW cache). */
+  (function paintAppVer() {
+    const el = document.getElementById('appVer');
+    if (el && typeof APP_SHELL_VERSION !== 'undefined') el.textContent = 'v' + APP_SHELL_VERSION;
+  })();
+
 /* BoBo Personal OS — normalized Supabase backend client */
 (function () {
   'use strict';
