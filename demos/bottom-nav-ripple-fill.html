@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bottom bar · Ripple Fill（reel 4 號）· 兩款 demo</title>
+<link rel="stylesheet" href="../vendor/uicons/css/uicons-regular-rounded.css" />
+<style>
+  :root {
+    --bg:#131f24; --panel:#0f171b; --text:#E8EEF1; --muted:#8FA3AD;
+    --card:#1a2228; --border:#2c3c44; --blue:#1CB0F6; --green:#58CC02;
+    --green-lite:#89E219; --green-dark:#46A302;
+    --ghost:#3d5560;
+    --violet:#8B5CF6; --cyan:#22D3EE;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0;
+    font-family:"Noto Sans TC","PingFang HK","Microsoft JhengHei",system-ui,-apple-system,sans-serif;
+    background:var(--bg); color:var(--text); padding:20px 16px 72px;
+  }
+  h1 { font-size:20px; margin:0 0 6px; font-weight:900; }
+  .lead { color:var(--muted); font-size:13px; margin:0 0 8px; line-height:1.55; max-width:480px; }
+  .warn {
+    display:inline-block; font-size:11px; font-weight:800; letter-spacing:.02em;
+    padding:4px 10px; border-radius:999px; background:#243840; color:#9FD4E8; margin-bottom:18px;
+  }
+  h2 { font-size:14px; margin:36px 0 6px; display:flex; align-items:center; gap:8px; font-weight:800; }
+  .tag { font-size:11px; font-weight:800; padding:3px 8px; border-radius:999px; background:#243840; color:#9FD4E8; }
+  .note { font-size:12px; color:var(--muted); margin:0 0 12px; max-width:480px; line-height:1.5; }
+
+  .phone {
+    width:100%; max-width:360px; background:var(--panel);
+    border:2px solid var(--border); border-radius:20px; padding:14px 12px 0;
+    overflow:hidden;
+  }
+  .ph-label {
+    font-size:11px; font-weight:800; color:var(--muted); letter-spacing:.04em;
+    text-transform:uppercase; margin:0 0 10px;
+  }
+  .ph-screen {
+    height:120px; border-radius:12px; background:rgba(255,255,255,.03);
+    border:1px dashed #2c3c44; display:grid; place-items:center;
+    color:var(--muted); font-size:12px; font-weight:700; margin-bottom:14px;
+  }
+  .ph-screen .hint-ico { font-size:22px; margin-bottom:4px; opacity:.5; }
+
+  /* —— shared ripple nav —— */
+  .ripple-nav {
+    display:grid; grid-template-columns:repeat(6, 1fr);
+    width:100%; margin:0 -12px; padding:6px 8px 10px;
+    border-top:2px solid transparent;
+  }
+  .ripple-nav .nav-btn {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:3px; min-height:64px; padding:4px 0 2px;
+    border:0; background:transparent; cursor:pointer; font-family:inherit;
+    -webkit-tap-highlight-color:transparent; position:relative;
+  }
+  .ripple-nav .ico-wrap {
+    position:relative;
+    width:44px; height:44px;
+    display:grid; place-items:center;
+    border-radius:14px;
+    overflow:hidden; /* ripple settles into rounded-square */
+  }
+  .ripple-nav .ripple-fill {
+    position:absolute;
+    left:50%; top:50%;
+    width:64px; height:64px; /* big enough to cover 44×44 when scaled */
+    margin:-32px 0 0 -32px;
+    border-radius:50%;
+    transform:scale(0);
+    opacity:0;
+    pointer-events:none;
+    will-change:transform, opacity;
+  }
+  .ripple-nav .ico-wrap > i {
+    position:relative; z-index:1;
+    font-size:20px; line-height:1;
+    transition:color .22s ease;
+  }
+  .ripple-nav .lbl {
+    font-size:10px; font-weight:800; line-height:1.1;
+    transition:color .22s ease;
+  }
+
+  /* expanding in */
+  .ripple-nav .nav-btn.is-active .ripple-fill,
+  .ripple-nav .nav-btn.is-entering .ripple-fill {
+    transform:scale(1);
+    opacity:1;
+    transition:
+      transform .38s cubic-bezier(.2,.8,.2,1),
+      opacity .18s ease;
+  }
+  /* old fades in place (no reverse shrink) */
+  .ripple-nav .nav-btn.is-leaving .ripple-fill {
+    transform:scale(1);
+    opacity:0;
+    transition:opacity .32s ease;
+  }
+  .ripple-nav .nav-btn.is-idle .ripple-fill {
+    transform:scale(0);
+    opacity:0;
+    transition:none;
+  }
+
+  /* ========== Demo A — reel violet→cyan / dark bar ========== */
+  .demo-a .ripple-nav {
+    background:#16161c;
+    border-top-color:#252530;
+  }
+  .demo-a .ripple-fill {
+    background:linear-gradient(135deg, var(--violet) 0%, var(--cyan) 100%);
+  }
+  .demo-a .nav-btn .ico-wrap > i,
+  .demo-a .nav-btn .lbl { color:#7a7a8a; }
+  .demo-a .nav-btn.is-active .ico-wrap > i,
+  .demo-a .nav-btn.is-entering .ico-wrap > i { color:#fff; }
+  .demo-a .nav-btn.is-active .lbl,
+  .demo-a .nav-btn.is-entering .lbl { color:#E8EEF1; }
+  .demo-a .ph-screen { background:rgba(139,92,246,.06); border-color:#2a2540; }
+
+  /* ========== Demo B — BoBo green / light Personal OS nav ========== */
+  .demo-b .phone { background:#F3F5F7; border-color:#D8DEE3; }
+  .demo-b .ph-label { color:#777; }
+  .demo-b .ph-screen {
+    background:#fff; border:2px solid #E5E5E5; color:#777;
+  }
+  .demo-b .ripple-nav {
+    background:#fff;
+    border-top-color:#E5E5E5;
+    box-shadow:0 -2px 0 rgba(0,0,0,.04);
+  }
+  .demo-b .ripple-fill {
+    background:linear-gradient(145deg, var(--green-lite) 0%, var(--green) 55%, var(--green-dark) 100%);
+  }
+  .demo-b .nav-btn .ico-wrap > i,
+  .demo-b .nav-btn .lbl { color:#AFAFAF; }
+  .demo-b .nav-btn.is-active .ico-wrap > i,
+  .demo-b .nav-btn.is-entering .ico-wrap > i { color:#fff; }
+  .demo-b .nav-btn.is-active .lbl,
+  .demo-b .nav-btn.is-entering .lbl { color:var(--green-dark); }
+
+  .foot {
+    margin-top:40px; padding:14px 16px; border-radius:14px; border:2px dashed #3d5560;
+    max-width:480px; font-size:13px; line-height:1.55; color:var(--muted);
+  }
+  .foot strong { color:var(--text); }
+  code { font-size:12px; background:#243038; padding:1px 6px; border-radius:6px; }
+</style>
+</head>
+<body>
+  <h1>Bottom bar · Ripple Fill（reel 4 號）· 兩款 demo</h1>
+  <p class="lead">點 tab 試動畫：由 icon 中心擴散填色，舊 tab 原地淡出（唔係滑過去）。揀 <strong>A</strong> 或 <strong>B</strong> 之後再套入 Personal OS。</p>
+  <span class="warn">Mock only · 未改 index · reel #4 Ripple Fill</span>
+
+  <!-- ========== A ========== -->
+  <h2><span class="tag">A</span> 貼近 reel · 紫→青</h2>
+  <p class="note">暗色 bar；violet → cyan 漸變由中心 ripple 填入 ~44×44 圓角方 pill；舊 fill 淡出；active icon 變白。</p>
+  <div class="phone demo-a">
+    <div class="ph-label">Personal OS · Demo A</div>
+    <div class="ph-screen" data-screen-a>
+      <div style="text-align:center">
+        <div class="hint-ico"><i class="fi fi-rr-sunrise" aria-hidden="true"></i></div>
+        <div>今日</div>
+      </div>
+    </div>
+    <nav class="ripple-nav" id="navA" aria-label="Demo A 導航">
+      <button type="button" class="nav-btn is-active" data-view="今日" data-ico="sunrise">
+        <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-sunrise" aria-hidden="true"></i></span>
+        <span class="lbl">今日</span>
+      </button>
+      <button type="button" class="nav-btn is-idle" data-view="目標" data-ico="bullseye">
+        <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-bullseye" aria-hidden="true"></i></span>
+        <span class="lbl">目標</span>
+      </button>
+      <button type="button" class="nav-btn is-idle" data-view="課程" data-ico="book-open-cover">
+        <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-book-open-cover" aria-hidden="true"></i></span>
+        <span class="lbl">課程</span>
+      </button>
+      <button type="button" class="nav-btn is-idle" data-view="日曆" data-ico="calendar">
+        <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-calendar" aria-hidden="true"></i></span>
+        <span class="lbl">日曆</span>
+      </button>
+      <button type="button" class="nav-btn is-idle" data-view="收件" data-ico="inbox">
+        <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-inbox" aria-hidden="true"></i></span>
+        <span class="lbl">收件</span>
+      </button>
+      <button type="button" class="nav-btn is-idle" data-view="更多" data-ico="menu-dots">
+        <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-menu-dots" aria-hidden="true"></i></span>
+        <span class="lbl">更多</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ========== B ========== -->
+  <h2><span class="tag">B</span> BoBo 綠 · Personal OS 白底 nav</h2>
+  <p class="note">同一套中心 ripple → 圓角方 pill；綠漸變（#89E219 → #58CC02）；白底 nav 貼近 app 日間模式；active icon 白、label 變綠。</p>
+  <div class="phone demo-b">
+    <div class="ph-label">Personal OS · Demo B</div>
+    <div class="ph-screen" data-screen-b>
+      <div style="text-align:center">
+        <div class="hint-ico"><i class="fi fi-rr-sunrise" aria-hidden="true"></i></div>
+        <div>今日</div>
+      </div>
+    </div>
+    <nav class="ripple-nav" id="navB" aria-label="Demo B 導航">
+      <button type="button" class="nav-btn is-active" data-view="今日" data-ico="sunrise">
+        <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-sunrise" aria-hidden="true"></i></span>
+        <span class="lbl">今日</span>
+      </button>
+      <button type="button" class="nav-btn is-idle" data-view="目標" data-ico="bullseye">
+        <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-bullseye" aria-hidden="true"></i></span>
+        <span class="lbl">目標</span>
+      </button>
+      <button type="button" class="nav-btn is-idle" data-view="課程" data-ico="book-open-cover">
+        <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-book-open-cover" aria-hidden="true"></i></span>
+        <span class="lbl">課程</span>
+      </button>
+      <button type="button" class="nav-btn is-idle" data-view="日曆" data-ico="calendar">
+        <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-calendar" aria-hidden="true"></i></span>
+        <span class="lbl">日曆</span>
+      </button>
+      <button type="button" class="nav-btn is-idle" data-view="收件" data-ico="inbox">
+        <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-inbox" aria-hidden="true"></i></span>
+        <span class="lbl">收件</span>
+      </button>
+      <button type="button" class="nav-btn is-idle" data-view="更多" data-ico="menu-dots">
+        <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-menu-dots" aria-hidden="true"></i></span>
+        <span class="lbl">更多</span>
+      </button>
+    </nav>
+  </div>
+
+  <div class="foot">
+    回 chat 話我揀邊款：<strong>A</strong>（紫→青 / 暗 bar）定 <strong>B</strong>（BoBo 綠 / 白底 nav）。確認之後先至套入 <code>index.html</code>。
+  </div>
+
+<script>
+(function () {
+  function wireNav(nav, screenSel) {
+    const screen = document.querySelector(screenSel);
+    let active = nav.querySelector('.nav-btn.is-active');
+    let leaveTimer = null;
+
+    function setScreen(btn) {
+      if (!screen) return;
+      const name = btn.getAttribute('data-view') || '';
+      const ico = btn.getAttribute('data-ico') || 'sunrise';
+      screen.innerHTML =
+        '<div style="text-align:center">' +
+          '<div class="hint-ico"><i class="fi fi-rr-' + ico + '" aria-hidden="true"></i></div>' +
+          '<div>' + name + '</div>' +
+        '</div>';
+    }
+
+    nav.addEventListener('click', function (e) {
+      const btn = e.target.closest('.nav-btn');
+      if (!btn || !nav.contains(btn) || btn === active) return;
+
+      if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; }
+
+      const prev = active;
+      if (prev) {
+        prev.classList.remove('is-active', 'is-entering', 'is-idle');
+        prev.classList.add('is-leaving');
+        leaveTimer = setTimeout(function () {
+          if (prev.classList.contains('is-leaving')) {
+            prev.classList.remove('is-leaving');
+            prev.classList.add('is-idle');
+          }
+        }, 340);
+      }
+
+      // force reflow so scale(0) → scale(1) always plays
+      btn.classList.remove('is-idle', 'is-leaving', 'is-active', 'is-entering');
+      void btn.offsetWidth;
+      btn.classList.add('is-entering');
+      requestAnimationFrame(function () {
+        btn.classList.add('is-active');
+      });
+      active = btn;
+      setScreen(btn);
+    });
+  }
+
+  wireNav(document.getElementById('navA'), '[data-screen-a]');
+  wireNav(document.getElementById('navB'), '[data-screen-b]');
+})();
+</script>
+</body>
+</html>
