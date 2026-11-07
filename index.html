@@ -337,14 +337,76 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; width: 100%; min-width: 
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
   height: calc(var(--nav-h) + var(--safe-b)); padding-bottom: var(--safe-b);
   background: var(--nav-bg); border-top: 2px solid var(--gray-100); display: flex; justify-content: center;
+  box-shadow: 0 -2px 0 rgba(0,0,0,.04);
 }
-.nav-inner { max-width: 560px; width: 100%; display: grid; grid-template-columns: repeat(6, 1fr); }
+.nav-inner { max-width: 560px; width: 100%; display: grid; grid-template-columns: repeat(6, 1fr); padding: 0 4px; }
 .nav-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px; color: var(--gray-400); font-size: 10px; font-weight: 800; min-height: var(--nav-h);
+  gap: 3px; color: var(--gray-400); font-size: 10px; font-weight: 800; min-height: var(--nav-h);
+  padding: 4px 0 2px; position: relative; -webkit-tap-highlight-color: transparent;
 }
-.nav-btn .ico { font-size: 22px; line-height: 1; }
-.nav-btn.active { color: var(--green-dark); }
+.nav-btn .ico-wrap {
+  position: relative;
+  width: 44px; height: 44px;
+  display: grid; place-items: center;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.nav-btn .ripple-fill {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 64px; height: 64px;
+  margin: -32px 0 0 -32px;
+  border-radius: 50%;
+  transform: scale(0);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+  background: linear-gradient(145deg, #89E219 0%, #58CC02 55%, #46A302 100%);
+}
+.nav-btn .ico-wrap > i {
+  position: relative; z-index: 1;
+  font-size: 20px; line-height: 1;
+  color: var(--gray-400);
+  transition: color .22s ease;
+}
+.nav-btn .lbl {
+  font-size: 10px; font-weight: 800; line-height: 1.1;
+  color: var(--gray-400);
+  transition: color .22s ease;
+}
+/* Ripple Fill Demo B: expand in */
+.nav-btn.is-active .ripple-fill,
+.nav-btn.is-entering .ripple-fill {
+  transform: scale(1);
+  opacity: 1;
+  transition:
+    transform .38s cubic-bezier(.2,.8,.2,1),
+    opacity .18s ease;
+}
+/* old active fades in place (no reverse shrink) */
+.nav-btn.is-leaving .ripple-fill {
+  transform: scale(1);
+  opacity: 0;
+  transition: opacity .32s ease;
+}
+.nav-btn.is-idle .ripple-fill {
+  transform: scale(0);
+  opacity: 0;
+  transition: none;
+}
+.nav-btn.is-active .ico-wrap > i,
+.nav-btn.is-entering .ico-wrap > i { color: #fff; }
+.nav-btn.is-active .lbl,
+.nav-btn.is-entering .lbl { color: var(--green-dark); }
+/* Dark: muted inactive; same green pill (reads on dark nav); label uses lighter --green-dark */
+[data-theme="dark"] .bottom-nav { box-shadow: 0 -2px 0 rgba(0,0,0,.25); }
+[data-theme="dark"] .nav-btn .ico-wrap > i,
+[data-theme="dark"] .nav-btn .lbl { color: var(--gray-400); }
+[data-theme="dark"] .nav-btn.is-active .ico-wrap > i,
+[data-theme="dark"] .nav-btn.is-entering .ico-wrap > i { color: #fff; }
+[data-theme="dark"] .nav-btn.is-active .lbl,
+[data-theme="dark"] .nav-btn.is-entering .lbl { color: var(--green-dark); }
 .modal-backdrop {
   position: fixed; inset: 0; z-index: 100; background: var(--modal-scrim);
   display: none; align-items: flex-end; justify-content: center;
@@ -479,8 +541,9 @@ select {
     gap: 4px;
     font-size: 11px;
   }
-  .nav-btn.active {
-    background: var(--green-soft);
+  .nav-btn.is-active,
+  .nav-btn.is-entering {
+    background: transparent;
   }
   .capture-bar {
     left: calc(var(--side-w) + var(--safe-l));
@@ -693,9 +756,8 @@ i.fi {
   color: inherit; line-height: 1; font-style: normal; vertical-align: middle;
   background: transparent !important; box-shadow: none !important;
 }
+/* nav icons: ripple-fill ico-wrap (see .bottom-nav) */
 .nav-btn .ico { display:flex; align-items:center; justify-content:center; line-height:1; background:transparent; }
-.nav-btn .ico .fi { font-size: 24px; color: var(--gray-600); }
-.nav-btn.active .ico .fi { color: var(--green-dark); }
 .ui-ico { font-size: 20px; }
 .ui-ico.lg { font-size: 26px; }
 .ui-ico.sm { font-size: 16px; }
@@ -1148,12 +1210,30 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
 
 <nav class="bottom-nav" aria-label="主導航">
   <div class="nav-inner">
-    <button class="nav-btn active" data-view="today" type="button"><span class="ico"><i class="fi fi-rr-sunrise" aria-hidden="true"></i></span>今日</button>
-    <button class="nav-btn" data-view="goals" type="button"><span class="ico"><i class="fi fi-rr-bullseye" aria-hidden="true"></i></span>目標</button>
-    <button class="nav-btn" data-view="course" type="button"><span class="ico"><i class="fi fi-rr-book-open-cover" aria-hidden="true"></i></span>課程</button>
-    <button class="nav-btn" data-view="calendar" type="button"><span class="ico"><i class="fi fi-rr-calendar" aria-hidden="true"></i></span>日曆</button>
-    <button class="nav-btn" data-view="inbox" type="button"><span class="ico"><i class="fi fi-rr-inbox" aria-hidden="true"></i></span>收件</button>
-    <button class="nav-btn" data-view="more" type="button"><span class="ico"><i class="fi fi-rr-menu-dots" aria-hidden="true"></i></span>更多</button>
+    <button class="nav-btn is-active" data-view="today" type="button" aria-current="page">
+      <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-sunrise" aria-hidden="true"></i></span>
+      <span class="lbl">今日</span>
+    </button>
+    <button class="nav-btn is-idle" data-view="goals" type="button">
+      <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-bullseye" aria-hidden="true"></i></span>
+      <span class="lbl">目標</span>
+    </button>
+    <button class="nav-btn is-idle" data-view="course" type="button">
+      <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-book-open-cover" aria-hidden="true"></i></span>
+      <span class="lbl">課程</span>
+    </button>
+    <button class="nav-btn is-idle" data-view="calendar" type="button">
+      <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-calendar" aria-hidden="true"></i></span>
+      <span class="lbl">日曆</span>
+    </button>
+    <button class="nav-btn is-idle" data-view="inbox" type="button">
+      <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-inbox" aria-hidden="true"></i></span>
+      <span class="lbl">收件</span>
+    </button>
+    <button class="nav-btn is-idle" data-view="more" type="button">
+      <span class="ico-wrap"><span class="ripple-fill" aria-hidden="true"></span><i class="fi fi-rr-menu-dots" aria-hidden="true"></i></span>
+      <span class="lbl">更多</span>
+    </button>
   </div>
 </nav>
 
@@ -2122,12 +2202,82 @@ html.dark .today-mode-seg button.active { background: rgba(255,255,255,.12); col
     txt.textContent = text;
   }
 
+  let navLeaveTimer = null;
+  function setNavRippleActive(name) {
+    const buttons = Array.from(document.querySelectorAll('.nav-btn'));
+    const clearSub = ['terms', 'review', 'milestones', 'settings'].includes(name);
+    const next = clearSub ? null : buttons.find(b => b.dataset.view === name) || null;
+    const prev = buttons.find(b => b.classList.contains('is-active') || b.classList.contains('is-entering')) || null;
+
+    if (navLeaveTimer) { clearTimeout(navLeaveTimer); navLeaveTimer = null; }
+
+    if (clearSub) {
+      buttons.forEach(b => {
+        const wasOn = b.classList.contains('is-active') || b.classList.contains('is-entering');
+        b.classList.remove('is-active', 'is-entering', 'active');
+        b.removeAttribute('aria-current');
+        if (wasOn) {
+          b.classList.remove('is-idle');
+          b.classList.add('is-leaving');
+        } else {
+          b.classList.remove('is-leaving');
+          b.classList.add('is-idle');
+        }
+      });
+      const leaving = buttons.filter(b => b.classList.contains('is-leaving'));
+      if (leaving.length) {
+        navLeaveTimer = setTimeout(() => {
+          leaving.forEach(b => {
+            if (b.classList.contains('is-leaving')) {
+              b.classList.remove('is-leaving');
+              b.classList.add('is-idle');
+            }
+          });
+        }, 340);
+      }
+      return;
+    }
+
+    if (prev && prev === next) {
+      next.classList.remove('is-idle', 'is-leaving', 'is-entering');
+      next.classList.add('is-active');
+      next.setAttribute('aria-current', 'page');
+      return;
+    }
+
+    if (prev && prev !== next) {
+      prev.classList.remove('is-active', 'is-entering', 'is-idle', 'active');
+      prev.removeAttribute('aria-current');
+      prev.classList.add('is-leaving');
+      navLeaveTimer = setTimeout(() => {
+        if (prev.classList.contains('is-leaving')) {
+          prev.classList.remove('is-leaving');
+          prev.classList.add('is-idle');
+        }
+      }, 340);
+    }
+
+    buttons.forEach(b => {
+      if (b === next || b === prev) return;
+      b.classList.remove('is-active', 'is-entering', 'is-leaving', 'active');
+      b.removeAttribute('aria-current');
+      b.classList.add('is-idle');
+    });
+
+    if (next) {
+      next.classList.remove('is-idle', 'is-leaving', 'is-active', 'is-entering', 'active');
+      void next.offsetWidth; // force reflow so scale(0)→scale(1) plays
+      next.classList.add('is-entering');
+      next.setAttribute('aria-current', 'page');
+      requestAnimationFrame(() => {
+        next.classList.add('is-active');
+      });
+    }
+  }
+
   function showView(name) {
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-    if (['terms', 'review', 'milestones', 'settings'].includes(name)) {
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    }
+    setNavRippleActive(name);
     if (name === 'terms') renderTerms();
     if (name === 'review') renderReview();
     if (name === 'calendar') { refreshDueTasksForCalMonth().then(() => renderCalendar()); }
